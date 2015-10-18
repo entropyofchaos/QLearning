@@ -1,4 +1,3 @@
-import aStar
 import qLearning
 
 class Grid:
@@ -47,11 +46,6 @@ class Grid:
         return self.weights.get(target, 1)
 
 
-
-
-Grid.aStar = aStar.aStar                            #added by yuksel
-Grid.draw_grid = aStar.draw_grid                    #added by yuksel
-Grid.reconstruct_path = aStar.reconstruct_path      #added by yuksel
 Grid.qLearning = qLearning.qLearning
 
 g = Grid()
