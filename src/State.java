@@ -1,9 +1,6 @@
-import org.apache.commons.lang3.tuple.MutablePair;
-import org.apache.commons.lang3.tuple.Pair;
-
-import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
-import java.util.Vector;
+import java.util.Set;
+import org.apache.commons.lang3.tuple.MutablePair;
 
 public class State {
 
@@ -100,15 +97,33 @@ public class State {
         return mPosition;
     }
 
-
     //getter and setter functions
+
+    /**
+     * Get all the possible transition actions for this state
+     * @return The transition actions
+     */
+    public Set<String> getActions(){
+
+        return mActions.keySet();
+    }
+
+    /**
+     * Sets the reward value for this state
+     * @param reward The reward value
+     */
+    public void setReward(double reward){
+
+        mReward = reward;
+    }
+
+    /**
+     * Gets the reward value for this state
+     * @return The reward value
+     */
     public double getReward(){
+
         return mReward;
     }
-
-    public void setReward(double r){
-         mReward=r;
-    }
-
 
 }
