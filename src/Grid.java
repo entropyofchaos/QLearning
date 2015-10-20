@@ -3,7 +3,6 @@ import java.nio.file.Files;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Vector;
 
 import org.apache.commons.lang3.tuple.MutablePair;
@@ -15,7 +14,6 @@ public class Grid {
     private int cols;
     private int rows;
     private Vector<Pair<Integer, Integer>> walls;
-    private HashMap<Integer, Integer> weights;
 
     public Grid(){
         cols = 0;
@@ -46,12 +44,40 @@ public class Grid {
             System.out.println(e.toString());
         }
 
-        for (int x = 0; x < walls.size(); ++x){
-            for (int y = 0; y < walls.elementAt(x).size(); ++y){
-                if (col == 'x'){
-                    walls.add(MutablePair<Integer, Integer>(x, y));
+        for (int x = 0; x < world.size(); ++x){
+            for (int y = 0; y < world.elementAt(x).length(); ++y){
+                if (world.elementAt(x).charAt(y) == 'x'){
+                    walls.add(new MutablePair<>(x, y));
                 }
             }
         }
     }
+
+    void printWorld()
+    {
+        world.forEach(string -> System.out.println(string));
+    }
+
+    Vector<Pair<Integer, Integer>> adjacent(Pair<Integer, Integer> loc){
+
+        Vector<Pair<Integer, Integer>> adj = new Vector<>();
+        int x = loc.getLeft();
+        int y = loc.getLeft();
+
+        if(x + 1 < cols && !walls.contains(new MutablePair<>(x + 1, y))) {
+            adj.add(new MutablePair<>(x + 1, y));
+        }
+        if(x - 1 >= 0 && !walls.contains(new MutablePair<>(x - 1, y))) {
+            adj.add(new MutablePair<>(x - 1, y));
+        }
+        if(y + 1 < rows && !walls.contains(new MutablePair<>(x, y + 1))) {
+            adj.add(new MutablePair<>(x, y + 1));
+        }
+        if(y - 1 >= 0 && !walls.contains(new MutablePair<>(x, y - 1))) {
+            adj.add(new MutablePair<>(x, y - 1));
+        }
+
+        return adj;
+    }
+
 }
