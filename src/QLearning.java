@@ -1,6 +1,8 @@
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.Iterator;
+import java.util.Set;
 import java.util.Vector;
 
 public class QLearning {
@@ -37,7 +39,55 @@ public class QLearning {
         //traverseGrid(start,goal,q_table,grid);
     }
 
-   public Vector<State> getNeighbors(Vector<String> world, Vector<Vector<State>> qt, State state){
+
+  public void episode(Vector<String> world,Vector<Vector<State>> qt, State state, int depth, double game, double alpha ){
+
+      MutablePair pos = state.getPosition();
+      Set<String> neigh;
+      State next_state;
+      double reward;
+      String direction;
+      if(depth>150)
+          return;
+      if(world.elementAt((int)pos.getRight()).charAt((int)pos.getLeft())=='x')
+      {
+          System.out.println("went to the obstacle");
+          return;
+      }
+      if(qt.elementAt((int)pos.getRight()).elementAt((int)pos.getLeft()).getReward() ==100)
+          return;
+
+      neigh = state.getActions();
+      MutablePair<State, String> n = nextState(qt, neigh,state);
+      state.takeTransitionAction(n.getRight());
+      //reward = state.getTrasitionActionReward(direction) + alpha*(next_state.getReward()+gamma*)
+    episode(world,qt,n.getLeft(),depth+1,gamma,alpha);
+
+  }
+
+    private MutablePair<State, String> nextState(Vector<Vector<State>> qt, Set<String> neigh, State curr) {
+        MutablePair<State, String> mp = new MutablePair<>();
+        MutablePair<Integer,Integer> xy = new MutablePair<>();
+        int index= (int)Math.random()*neigh.size();
+        Iterator<String> it=neigh.iterator();
+        for(int i=0;i<index+1;i++)
+            mp.setRight(it.next());
+        mp.setLeft(null);
+        xy = curr.getPosition();
+        if(mp.getRight()=="left")
+                mp.setLeft(qt.elementAt(xy.getRight()).elementAt(xy.getLeft()-1));
+        else if(mp.getRight()=="right")
+            mp.setLeft(qt.elementAt(xy.getRight()).elementAt(xy.getLeft()+1));
+        else if(mp.getRight()=="up")
+            mp.setLeft(qt.elementAt(xy.getRight()-1).elementAt(xy.getLeft()));
+        else if(mp.getRight()=="down")
+            mp.setLeft(qt.elementAt(xy.getRight()+1).elementAt(xy.getLeft()));
+
+        return mp;
+    }
+
+
+    public Vector<State> getNeighbors(Vector<String> world, Vector<Vector<State>> qt, State state){
        Vector<State> neighbours = new Vector<>();
        MutablePair pos = state.getPosition();
        int x = (int)pos.getLeft(), y = (int)pos.getRight(),n = qt.size(), m = qt.elementAt(0).size();
@@ -48,7 +98,7 @@ public class QLearning {
        if(y+1 < n && world.elementAt(y+1).charAt(x) != 'x')
            neighbours.add(qt.elementAt(y + 1).elementAt(x));
        if(y-1 >=0 && world.elementAt(y-1).charAt(x) != 'x')
-           neighbours.add(qt.elementAt(y-1).elementAt(x));
+           neighbours.add(qt.elementAt(y - 1).elementAt(x));
 
 
 
