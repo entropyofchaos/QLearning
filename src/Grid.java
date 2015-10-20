@@ -12,14 +12,16 @@ import org.apache.commons.lang3.tuple.Pair;
 public class Grid {
 
     private Vector<String> world;
-    private int cols = 0;
-    private int rows = 0;
-    private Pair<Integer, Integer> walls;
+    private int cols;
+    private int rows;
+    private Vector<Pair<Integer, Integer>> walls;
     private HashMap<Integer, Integer> weights;
 
     public Grid(){
+        cols = 0;
+        rows = 0;
         world = new Vector<>();
-        walls = new MutablePair<>();
+        walls = new Vector<>();
     }
 
     void readFile(String path){
@@ -28,14 +30,28 @@ public class Grid {
         Charset charset = Charset.forName("ISO-8859-1");
 
         try {
+            // Read all lines from a file into a list of strings, then
+            // append the list of strings to our vector of strings. This
+            // vector represents the lines of our map file.
             world.addAll(Files.readAllLines(filePath, charset));
             for (int i = 0; i < world.size(); ++i)
             {
                 world.set(i, world.get(i).trim());
             }
 
+            rows = world.size();
+            cols = world.elementAt(0).length();
+
         } catch (IOException e){
             System.out.println(e.toString());
+        }
+
+        for (int x = 0; x < walls.size(); ++x){
+            for (int y = 0; y < walls.elementAt(x).size(); ++y){
+                if (col == 'x'){
+                    walls.add(MutablePair<Integer, Integer>(x, y));
+                }
+            }
         }
     }
 }
