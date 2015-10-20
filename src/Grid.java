@@ -113,4 +113,14 @@ public class Grid {
 
 
 
+    //getter, setter functions
+    public Vector<String> getWorld()
+    {return mWorld;}
+
+    public void setWorld(Vector<String> newWorld)
+    { mWorld=newWorld;}
+
+
+
+
 }

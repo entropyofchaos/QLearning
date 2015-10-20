@@ -99,4 +99,16 @@ public class State {
 
         return mPosition;
     }
+
+
+    //getter and setter functions
+    public double getReward(){
+        return mReward;
+    }
+
+    public void setReward(double r){
+         mReward=r;
+    }
+
+
 }
