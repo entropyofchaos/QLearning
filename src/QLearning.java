@@ -8,9 +8,9 @@ public class QLearning {
     private double alpha = 0;
     private double gamma = 0.8;
     Vector<Vector<State>> q_table;
-    public static void main (String[] args) {
-        System.out.println("Hello!");
-    }
+//    public static void main (String[] args) {
+//        System.out.println("Hello!");
+//    }
 
     public QLearning(Grid grid, Pair<Integer, Integer> start, Pair<Integer, Integer> goal) {
         q_table = new Vector<>();
@@ -37,7 +37,27 @@ public class QLearning {
         //traverseGrid(start,goal,q_table,grid);
     }
 
-    private void printRewards(Vector<Vector<State>> q_table) {
+   public Vector<State> getNeighbors(Vector<String> world, Vector<Vector<State>> qt, State state){
+       Vector<State> neighbours = new Vector<>();
+       MutablePair pos = state.getPosition();
+       int x = (int)pos.getLeft(), y = (int)pos.getRight(),n = qt.size(), m = qt.elementAt(0).size();
+       if(x+1 < m && world.elementAt(y).charAt(x+1) != 'x')
+           neighbours.add(qt.elementAt(y).elementAt(x + 1));
+       if(x-1 >= 0 && world.elementAt(y).charAt(x-1) != 'x')
+           neighbours.add(qt.elementAt(y).elementAt(x - 1));
+       if(y+1 < n && world.elementAt(y+1).charAt(x) != 'x')
+           neighbours.add(qt.elementAt(y + 1).elementAt(x));
+       if(y-1 >=0 && world.elementAt(y-1).charAt(x) != 'x')
+           neighbours.add(qt.elementAt(y-1).elementAt(x));
+
+
+
+       return  neighbours;
+   }
+
+
+
+    public void printRewards(Vector<Vector<State>> q_table) {
         int x,y;
         String str= new String();
         for(y=0;y<q_table.size();y++) {
@@ -52,7 +72,7 @@ public class QLearning {
 
 
     //please change this function after updating state
-    private void printQTable(Vector<Vector<State>> q_table) {
+    public void printQTable(Vector<Vector<State>> q_table) {
         int x,y;
         String str= new String();
         for(y=0;y<q_table.size();y++)
