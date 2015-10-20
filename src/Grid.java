@@ -82,7 +82,7 @@ public class Grid {
      * @param loc The location you are looking at
      * @return A vector of valid adjacent cells
      */
-    Vector<Pair<Integer, Integer>> adjacent(Pair<Integer, Integer> loc){
+    Vector<Pair<Integer, Integer>> getAdjacent(Pair<Integer, Integer> loc){
 
         Vector<Pair<Integer, Integer>> adj = new Vector<>();
         int x = loc.getLeft();
