@@ -32,15 +32,76 @@ public class QLearning {
                 y =(int)Math.random()*q_table.size();
                 x =(int)Math.random()*q_table.elementAt(y).size();
             }
-            //episode(grid,q_table,q_table.elementAt(y).charAt(x),0,gamma,alpha);
+            episode(grid.getWorld(),q_table,q_table.elementAt(y).elementAt(x),0,gamma,alpha);
 
         }
         printQTable(q_table);
-        //traverseGrid(start,goal,q_table,grid);
+        traverseGrid(start,goal,q_table,grid.getWorld());
+    }
+
+    private Vector<Pair> traverseGrid(Pair<Integer, Integer> start, Pair<Integer, Integer> goal, Vector<Vector<State>> q_table, Vector<String> grid) {
+        Pair<Integer,Integer> local_start = start;
+        Pair<Integer,Integer> local_goal = goal;
+        Set<String> neigh;
+        double reward;
+        Vector<Pair> paths=new Vector<>();
+        String direction=new String();
+        boolean reachedEnd = false;
+        double maxReward = 0;
+        int index=0,i=0;
+        //paths
+        while(!reachedEnd){
+            if(local_goal.getLeft()==local_goal.getLeft() &&local_start.getRight()==local_goal.getRight())
+            {
+                reachedEnd=true;
+                break;
+            }
+            else{
+                neigh = q_table.elementAt(local_start.getRight()).elementAt(local_start.getLeft()).getActions();
+                direction = neigh.iterator().next();
+                for(Iterator<String>it=neigh.iterator();it.hasNext();)
+                {
+                    String x=it.next();
+                    reward =    q_table.elementAt(local_start.getRight()).elementAt(local_start.getLeft()).getTrasitionActionReward(x).getRight();
+                    if(reward>maxReward)
+                    {
+                        maxReward=reward;
+                        index=i;
+                        direction= x;
+                    }
+                    i+=1;
+                }
+                System.out.println("Agent selects direction"+direction);
+                if(Math.random()*9<6)
+                {
+                    String wanted=direction;
+                    while(direction == wanted &&neigh.size()>1)
+                    {
+                        int pick = (int)Math.random()*neigh.size();
+                        direction =  getElementFromSet(neigh,pick);
+                    }
+
+                }
+                System.out.println("Agent moves in direction:"+direction);
+                State next_pos;
+                if(direction=="left")
+                    next_pos=q_table.elementAt(local_start.getRight()).elementAt(local_start.getLeft()-1);
+                else if(direction=="right")
+                    next_pos=q_table.elementAt(local_start.getRight()).elementAt(local_start.getLeft()+1);
+                else if(direction=="up")
+                    next_pos=q_table.elementAt(local_start.getRight()-1).elementAt(local_start.getLeft()+1);
+                else if(direction=="down")
+                    next_pos=q_table.elementAt(local_start.getRight()+1).elementAt(local_start.getLeft()+1);
+
+            }
+        paths.add(local_start);
+        }
+        return paths;
+
     }
 
 
-  public void episode(Vector<String> world,Vector<Vector<State>> qt, State state, int depth, double game, double alpha ){
+    public void episode(Vector<String> world,Vector<Vector<State>> qt, State state, int depth, double game, double alpha ){
 
       MutablePair pos = state.getPosition();
       Set<String> neigh;
@@ -165,5 +226,18 @@ public class QLearning {
             qt.add(ls);
         }
 
+    }
+
+
+
+    public String getElementFromSet(Set<String> neigh, int index)
+    {
+        Iterator<String>it=neigh.iterator();
+        String ret = new String();
+        for(int i=0;i<=index;i++)
+        {
+            ret= it.next();
+        }
+        return ret;
     }
 }
