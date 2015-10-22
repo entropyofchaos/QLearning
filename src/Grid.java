@@ -1,9 +1,11 @@
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Vector;
+import java.util.List;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -12,20 +14,33 @@ import org.apache.commons.lang3.tuple.Pair;
  */
 public class Grid {
 
-    private Vector<String> mWorld;
+    private MutablePair<Character, State>[][] mWorld;
     private int mCols;
     private int mRows;
     private Vector<Pair<Integer, Integer>> mWalls;
+    private MutablePair<Integer, Integer> mGoal;
 
     /**
      * Default constructor
      */
-    public Grid(){
+    public Grid(String path, MutablePair<Integer, Integer> goal){
 
         mCols = 0;
         mRows = 0;
-        mWorld = new Vector<>();
         mWalls = new Vector<>();
+        mGoal = goal;
+
+        readFile(path);
+    }
+
+    public int getNumColumns(){
+
+        return mCols;
+    }
+
+    public int getNumRows(){
+
+        return mRows;
     }
 
     /**
@@ -33,7 +48,7 @@ public class Grid {
      * valid and which locations are mWalls.
      * @param path The path to the grid mWorld file
      */
-    public void readFile(String path){
+    private void readFile(String path){
 
         Path filePath = Paths.get(path);
         Charset charset = Charset.forName("ISO-8859-1");
@@ -42,14 +57,31 @@ public class Grid {
             // Read all lines from a file into a list of strings, then
             // append the list of strings to our vector of strings. This
             // vector represents the lines of our map file.
-            mWorld.addAll(Files.readAllLines(filePath, charset));
-            for (int i = 0; i < mWorld.size(); ++i)
+            List<String> lines = Files.readAllLines(filePath, charset);
+            mWorld = this.<MutablePair<Character, State>>get2DArray(mWorld.getClass(), lines.size(),
+                    lines.get(0).length());
+
+            for (int x = 0; x < mWorld.length; ++x)
             {
-                mWorld.set(i, mWorld.get(i).trim());
+                String oneLine = lines.get(x).trim();
+                int lineSize = oneLine.length();
+                for (int y = 0; y < lineSize; ++y){
+                    mWorld[x][y].setLeft(oneLine.charAt(y));
+                    State temp = new State(MutablePair.of(x, y));
+                    temp.addTransitionAction("right", 0);
+                    temp.addTransitionAction("left", 0);
+                    temp.addTransitionAction("down", 0);
+                    temp.addTransitionAction("up", 0);
+                    mWorld[x][y].setRight(temp);
+                }
             }
 
-            mRows = mWorld.size();
-            mCols = mWorld.elementAt(0).length();
+            State tempState = mWorld[mGoal.getLeft()][mGoal.getRight()].getRight();
+            tempState.setReward(100);
+            mWorld[mGoal.getLeft()][mGoal.getRight()].setRight(tempState);
+
+            mRows = mWorld.length;
+            mCols = mWorld[0].length;
 
         } catch (IOException e){
             System.out.println(e.toString());
@@ -58,9 +90,9 @@ public class Grid {
         // Go through all the characters in the grid map and see if we find any
         // x's. If we find one, it represents a wall, so we add it to the list
         // of mWalls.
-        for (int x = 0; x < mWorld.size(); ++x){
-            for (int y = 0; y < mWorld.elementAt(x).length(); ++y){
-                if (mWorld.elementAt(x).charAt(y) == 'x'){
+        for (int x = 0; x < mWorld.length; ++x){
+            for (int y = 0; y < mWorld[x].length; ++y){
+                if (mWorld[x][y].getLeft() == 'x'){
                     mWalls.add(new MutablePair<>(x, y));
                 }
             }
@@ -68,11 +100,27 @@ public class Grid {
     }
 
     /**
-     * Prints the grid mWorld to the console.
+     * Prints the grid world to the console.
      */
-    public void printWorld()
-    {
-        mWorld.forEach(string -> System.out.println(string));
+    public void printWorld(){
+        for (int x = 0; x < mWorld.length; ++x){
+            for (int y = 0; y < mWorld[x].length; ++y){
+                System.out.println(mWorld[x][y].getLeft());
+            }
+        }
+    }
+
+    /**
+     * Prints the grid's stored rewards to the console.
+     */
+    public void printRewards() {
+
+        for (int x = 0; x < mWorld.length; ++x){
+            for (int y = 0; y < mWorld[x].length; ++y){
+                System.out.print(mWorld[x][y].getRight().getReward() + " ");
+            }
+            System.out.println();
+        }
     }
 
     /**
@@ -82,45 +130,46 @@ public class Grid {
      * @param loc The location you are looking at
      * @return A vector of valid adjacent cells
      */
-    Vector<Pair<Integer, Integer>> getAdjacent(Pair<Integer, Integer> loc){
+    Vector<State> getNeighbors(Pair<Integer, Integer> loc){
 
-        Vector<Pair<Integer, Integer>> adj = new Vector<>();
+        Vector<State> neighbors = new Vector<>();
         int x = loc.getLeft();
         int y = loc.getLeft();
 
         // Look at cell to the right
         if(x + 1 < mCols && !mWalls.contains(new MutablePair<>(x + 1, y))) {
-            adj.add(new MutablePair<>(x + 1, y));
+            neighbors.add(mWorld[x + 1][y].getRight());
         }
 
         // Look at cell to the left
         if(x - 1 >= 0 && !mWalls.contains(new MutablePair<>(x - 1, y))) {
-            adj.add(new MutablePair<>(x - 1, y));
+            neighbors.add(mWorld[x - 1][y].getRight());
         }
 
         // Look at cell below
         if(y + 1 < mRows && !mWalls.contains(new MutablePair<>(x, y + 1))) {
-            adj.add(new MutablePair<>(x, y + 1));
+            neighbors.add(mWorld[x][y + 1].getRight());
         }
 
         // Look at cell above
         if(y - 1 >= 0 && !mWalls.contains(new MutablePair<>(x, y - 1))) {
-            adj.add(new MutablePair<>(x, y - 1));
+            neighbors.add(mWorld[x][y - 1].getRight());
         }
 
-        return adj;
+        return neighbors;
     }
 
+    public double getReward(MutablePair<Integer, Integer> loc){
 
+        return mWorld[loc.getLeft()][loc.getRight()].getRight().getReward();
+    }
 
-    //getter, setter functions
-    public Vector<String> getWorld()
-    {return mWorld;}
+    public <E> E[][] get2DArray(Class<? extends Pair[][]> clazz, int firstD, int secondD) {
+        @SuppressWarnings("unchecked")
+        E[][] arr = (E[][]) Array.newInstance(clazz, firstD, secondD);
 
-    public void setWorld(Vector<String> newWorld)
-    { mWorld=newWorld;}
-
-
+        return arr;
+    }
 
 
 }

@@ -16,9 +16,7 @@ public class gameTest {
         int userStartY = 0;
         int userGoalX = 0;
         int userGoalY = 0;
-        Grid g = new Grid();
 
-        g.readFile("world.txt");
         Scanner in = new Scanner(System.in);
         System.out.println("Enter the X coordinate of the start state.");
         userStartX = in.nextInt();

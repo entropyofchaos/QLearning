@@ -7,39 +7,37 @@ import java.util.Vector;
 
 public class QLearning {
 
-    private double alpha = 0;
-    private double gamma = 0.8;
-    Vector<Vector<State>> q_table;
-//    public static void main (String[] args) {
-//        System.out.println("Hello!");
-//    }
+    private Grid g;
 
-    public QLearning(Grid grid, Pair<Integer, Integer> start, Pair<Integer, Integer> goal) {
-        q_table = new Vector<>();
+    public QLearning(Grid grid, Pair<Integer, Integer> start, MutablePair<Integer, Integer> goal) {
+
+        Grid g = new Grid("world.txt", goal);
         double alpha = 1;
         double gamma = 0.8;
-        int i,x,y;
+        int x;
+        int y;
 
-        qInit(q_table, grid.getWorld(),goal);
-        printQTable(q_table);
-        printRewards(q_table);
+        g.printWorld();
+        g.printRewards();
 
-        for(i=0;i<1000;i++)
+        for(int i = 0; i < 1000; ++i)
         {
-            y =(int)Math.random()*q_table.size();
-            x =(int)Math.random()*q_table.elementAt(y).size();
-            while(grid.getWorld().elementAt(y).charAt(x)=='x' || q_table.elementAt(y).elementAt(x).getReward() ==100 ){
-                y =(int)Math.random()*q_table.size();
-                x =(int)Math.random()*q_table.elementAt(y).size();
-            }
+            Vector<State> neighbors;
+            do{
+                y = (int)(Math.random() * (double)g.getNumColumns());
+                x = (int)(Math.random() * (double)g.getNumRows());
+                neighbors = g.getNeighbors(MutablePair.of(x, y));
+            } while(neighbors.size() == 0 || g.getReward(MutablePair.of(x, y)) == 100);
+
             episode(grid.getWorld(),q_table,q_table.elementAt(y).elementAt(x),0,gamma,alpha);
 
         }
         printQTable(q_table);
-        traverseGrid(start,goal,q_table,grid.getWorld());
+        traverseGrid(start, goal, q_table, grid.getWorld());
     }
 
-    private Vector<Pair> traverseGrid(Pair<Integer, Integer> start, Pair<Integer, Integer> goal, Vector<Vector<State>> q_table, Vector<String> grid) {
+    private Vector<Pair> traverseGrid(Pair<Integer, Integer> start, Pair<Integer, Integer> goal,
+                                      Vector<Vector<State>> q_table, Vector<String> grid) {
         Pair<Integer,Integer> local_start = start;
         Pair<Integer,Integer> local_goal = goal;
         Set<String> neigh;
@@ -62,7 +60,8 @@ public class QLearning {
                 for(Iterator<String>it=neigh.iterator();it.hasNext();)
                 {
                     String x=it.next();
-                    reward =    q_table.elementAt(local_start.getRight()).elementAt(local_start.getLeft()).getTrasitionActionReward(x).getRight();
+                    reward =    q_table.elementAt(local_start.getRight()).elementAt(local_start.getLeft()).
+                            getTrasitionActionReward(x).getRight();
                     if(reward>maxReward)
                     {
                         maxReward=reward;
@@ -77,7 +76,7 @@ public class QLearning {
                     String wanted=direction;
                     while(direction == wanted &&neigh.size()>1)
                     {
-                        int pick = (int)Math.random()*neigh.size();
+                        int pick = (int)(Math.random()*neigh.size());
                         direction =  getElementFromSet(neigh,pick);
                     }
 
@@ -101,21 +100,15 @@ public class QLearning {
     }
 
 
-    public void episode(Vector<String> world,Vector<Vector<State>> qt, State state, int depth, double game, double alpha ){
+    public void episode(State state, int depth, double gamma, double alpha){
 
-      MutablePair pos = state.getPosition();
       Set<String> neigh;
       State next_state;
       double reward;
       String direction;
       if(depth>150)
           return;
-      if(world.elementAt((int)pos.getRight()).charAt((int)pos.getLeft())=='x')
-      {
-          System.out.println("went to the obstacle");
-          return;
-      }
-      if(qt.elementAt((int)pos.getRight()).elementAt((int)pos.getLeft()).getReward() ==100)
+      if(state.getReward() == 100)
           return;
 
       neigh = state.getActions();
@@ -129,7 +122,7 @@ public class QLearning {
     private MutablePair<State, String> nextState(Vector<Vector<State>> qt, Set<String> neigh, State curr) {
         MutablePair<State, String> mp = new MutablePair<>();
         MutablePair<Integer,Integer> xy = new MutablePair<>();
-        int index= (int)Math.random()*neigh.size();
+        int index= (int)(Math.random()*neigh.size());
         Iterator<String> it=neigh.iterator();
         for(int i=0;i<index+1;i++)
             mp.setRight(it.next());
@@ -147,41 +140,6 @@ public class QLearning {
         return mp;
     }
 
-
-    public Vector<State> getNeighbors(Vector<String> world, Vector<Vector<State>> qt, State state){
-       Vector<State> neighbours = new Vector<>();
-       MutablePair pos = state.getPosition();
-       int x = (int)pos.getLeft(), y = (int)pos.getRight(),n = qt.size(), m = qt.elementAt(0).size();
-       if(x+1 < m && world.elementAt(y).charAt(x+1) != 'x')
-           neighbours.add(qt.elementAt(y).elementAt(x + 1));
-       if(x-1 >= 0 && world.elementAt(y).charAt(x-1) != 'x')
-           neighbours.add(qt.elementAt(y).elementAt(x - 1));
-       if(y+1 < n && world.elementAt(y+1).charAt(x) != 'x')
-           neighbours.add(qt.elementAt(y + 1).elementAt(x));
-       if(y-1 >=0 && world.elementAt(y-1).charAt(x) != 'x')
-           neighbours.add(qt.elementAt(y - 1).elementAt(x));
-
-
-
-       return  neighbours;
-   }
-
-
-
-    public void printRewards(Vector<Vector<State>> q_table) {
-        int x,y;
-        String str= new String();
-        for(y=0;y<q_table.size();y++) {
-            str="";
-            for (x = 0; x < q_table.elementAt(0).size(); x++) {
-                str += q_table.elementAt(y).elementAt(x).getReward() + " ";
-                System.out.println(str);
-            }
-        }
-    }
-
-
-
     //please change this function after updating state
     public void printQTable(Vector<Vector<State>> q_table) {
         int x,y;
@@ -189,46 +147,12 @@ public class QLearning {
         for(y=0;y<q_table.size();y++)
             for(x=0;x<q_table.elementAt(0).size();x++)
             {
-                str = "State " + (q_table.elementAt(y).elementAt(x).getPosition()) + "'s Actions: " + (q_table.elementAt(y).elementAt(x).numTransitionActionsTaken("right"));
+                str = "State " + (q_table.elementAt(y).elementAt(x).getPosition()) + "'s Actions: " +
+                        (q_table.elementAt(y).elementAt(x).numTransitionActionsTaken("right"));
                 System.out.println(str);
             }
 
     }
-
-    public void qInit(Vector<Vector<State>> qt,Vector<String> world,Pair<Integer, Integer> goal){
-        int n = world.size();
-        int m  = world.elementAt(0).length();
-        int y,x;
-        Vector<State> ls;
-        State temp;
-        for(y=0;y<n;y++)
-        {
-            ls = new Vector<>();
-            for(x=0;x<m;x++)
-            {
-                temp = new State(MutablePair.of(x,y));
-                if(x+1 < m && world.elementAt(y).charAt(x+1) != 'x')
-                    temp.addTransitionAction("right", 0);
-                if(x-1 >= 0 && world.elementAt(y).charAt(x-1) != 'x')
-                    temp.addTransitionAction("left", 0);
-                if(y+1 < n && world.elementAt(y+1).charAt(x) != 'x')
-                    temp.addTransitionAction("down", 0);
-                if(y-1 >=0 && world.elementAt(y-1).charAt(x) != 'x')
-                    temp.addTransitionAction("up", 0);
-
-                //Yuksel/ Joe please check the validity here
-                if(x == goal.getLeft() && y == goal.getRight())
-                    temp.setReward(100);
-
-                ls.add(temp);
-
-            }
-            qt.add(ls);
-        }
-
-    }
-
-
 
     public String getElementFromSet(Set<String> neigh, int index)
     {

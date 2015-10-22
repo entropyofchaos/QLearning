@@ -97,8 +97,6 @@ public class State {
         return mPosition;
     }
 
-    //getter and setter functions
-
     /**
      * Get all the possible transition actions for this state
      * @return The transition actions
