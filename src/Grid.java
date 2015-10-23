@@ -18,7 +18,7 @@ public class Grid {
     private MutablePair<Character, State>[][] mWorld;
     private int mCols;
     private int mRows;
-    private Vector<Pair<Integer, Integer>> mWalls;
+    private Vector<MutablePair<Integer, Integer>> mWalls;
     private MutablePair<Integer, Integer> mGoal;
 
     /**
@@ -104,13 +104,14 @@ public class Grid {
      * Helper function to retrieve all valid adjacent cells to the current cell.
      * All adjacent cells that would be an invalid location, such as a wall are
      * not added to the vector.
-     * @param loc The location you are looking at
+     * @param state The state to neighbors from
      * @return A vector of valid adjacent cells where the first parameter is the
      * direction name and the second is the actual State
      */
-    Vector<MutablePair<String, State>> getNeighbors(Pair<Integer, Integer> loc){
+    Vector<MutablePair<String, State>> getNeighbors(State state){
 
         Vector<MutablePair<String, State>>  neighbors = new Vector<>();
+        Pair<Integer, Integer> loc = state.getPosition();
         int x = loc.getLeft();
         int y = loc.getLeft();
 
@@ -187,7 +188,7 @@ public class Grid {
         }
     }
 
-    public <E> E[][] get2DArray(Class<? extends Pair[][]> clazz, int firstD, int secondD) {
+    private <E> E[][] get2DArray(Class<? extends Pair[][]> clazz, int firstD, int secondD) {
         @SuppressWarnings("unchecked")
         E[][] arr = (E[][]) Array.newInstance(clazz, firstD, secondD);
 

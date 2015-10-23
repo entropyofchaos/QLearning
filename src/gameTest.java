@@ -1,3 +1,5 @@
+import org.apache.commons.lang3.tuple.MutablePair;
+
 import java.util.Scanner;
 
 /**
@@ -26,7 +28,7 @@ public class gameTest {
         userGoalX = in.nextInt();
         System.out.println("Enter the Y coordinate of the start state.");
         userGoalY = in.nextInt();
-        //g.qLearning(userStartX, userStartY, userGoalX,userGoalY);
+        new QLearning (new MutablePair<Integer, Integer>(userStartX, userStartY), new MutablePair<Integer, Integer>(userGoalX, userGoalY));
 
     }
 }
