@@ -61,9 +61,9 @@ public class State {
      * @param direction The direction to lookup
      * @return The value of the reward
      */
-    public MutablePair<Integer, Double> getTrasitionActionReward(String direction){
+    public double getTransitionActionReward(String direction){
 
-        return mActions.get(direction);
+        return mActions.get(direction).getRight();
     }
 
     /**
