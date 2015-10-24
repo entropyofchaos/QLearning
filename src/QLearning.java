@@ -1,5 +1,7 @@
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.Random;
 import java.util.Vector;
 
 public class QLearning {
@@ -17,13 +19,15 @@ public class QLearning {
         q_table.printWorld();
         q_table.printRewards();
 
+        Random generator = new Random();
+
         for(int i = 0; i < 1000; ++i)
         {
             Vector<MutablePair<String, State>> neighbors;
             MutablePair<Integer, Integer> randomLocation;
             do{
-                y = (int)(Math.random() * (double)q_table.getNumColumns());
-                x = (int)(Math.random() * (double)q_table.getNumRows());
+                x = generator.nextInt(q_table.getNumRows());
+                y = generator.nextInt(q_table.getNumColumns());
                 randomLocation = new MutablePair<>(x, y);
 
                 neighbors = q_table.getNeighbors(q_table.getState(randomLocation));
@@ -77,7 +81,8 @@ public class QLearning {
         Vector<MutablePair<String, State>> neighbors = q_table.getNeighbors(state);
 
         // Choose a random direction to go next from the list of available directions
-        int index = (int)(Math.random() * neighbors.size());
+        Random generator = new Random();
+        int index = generator.nextInt(neighbors.size());
 
         return neighbors.elementAt(index);
     }

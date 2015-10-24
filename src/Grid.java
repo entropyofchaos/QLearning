@@ -30,6 +30,7 @@ public class Grid {
         mRows = 0;
         mWalls = new Vector<>();
         mGoal = goal;
+        mGoal = goal;
 
         readFile(path);
     }
@@ -59,7 +60,8 @@ public class Grid {
             // append the list of strings to our vector of strings. This
             // vector represents the lines of our map file.
             List<String> lines = Files.readAllLines(filePath, charset);
-            mWorld = this.<MutablePair<Character, State>>get2DArray(mWorld.getClass(), lines.size(),
+            MutablePair<Character, State> arrayParam = new MutablePair<>();
+            mWorld = this.<MutablePair<Character, State>>get2DArray(arrayParam.getClass(), lines.size(),
                     lines.get(0).length());
 
             for (int x = 0; x < mWorld.length; ++x)
@@ -67,6 +69,7 @@ public class Grid {
                 String oneLine = lines.get(x).trim();
                 int lineSize = oneLine.length();
                 for (int y = 0; y < lineSize; ++y){
+                    mWorld[x][y] = new MutablePair<>();
                     mWorld[x][y].setLeft(oneLine.charAt(y));
                     State temp = new State(MutablePair.of(x, y));
                     temp.addTransitionAction("right", 0);
@@ -116,7 +119,7 @@ public class Grid {
         int y = loc.getLeft();
 
         // Look at cell to the right
-        if(x + 1 < mCols && !mWalls.contains(new MutablePair<>(x + 1, y))) {
+        if(x + 1 < mRows && !mWalls.contains(new MutablePair<>(x + 1, y))) {
             neighbors.add(new MutablePair<>("right", mWorld[x + 1][y].getRight()));
         }
 
@@ -126,7 +129,7 @@ public class Grid {
         }
 
         // Look at cell below
-        if(y + 1 < mRows && !mWalls.contains(new MutablePair<>(x, y + 1))) {
+        if(y + 1 < mCols && !mWalls.contains(new MutablePair<>(x, y + 1))) {
             neighbors.add(new MutablePair<>("down", mWorld[x][y + 1].getRight()));
         }
 
@@ -174,12 +177,13 @@ public class Grid {
 
     //please change this function after updating state
     public void printQTable() {
-        String str = null;
+        String str;
         for (int x = 0; x < mWorld.length; ++x) {
             for (int y = 0; y < mWorld[x].length; ++y) {
+                str = "";
                 Set<String> actions = mWorld[x][y].getRight().getActions();
                 for (String action : actions) {
-                    str += action + " - " + mWorld[x][y].getRight().getTransitionActionReward(action);
+                    str += action + " - " + mWorld[x][y].getRight().getTransitionActionReward(action) + " ";
                 }
 
                 str = "State (" + x + ", " + y + ")'s Actions: " + str;
@@ -188,7 +192,7 @@ public class Grid {
         }
     }
 
-    private <E> E[][] get2DArray(Class<? extends Pair[][]> clazz, int firstD, int secondD) {
+    private <E> E[][] get2DArray(Class<? extends MutablePair> clazz, int firstD, int secondD) {
         @SuppressWarnings("unchecked")
         E[][] arr = (E[][]) Array.newInstance(clazz, firstD, secondD);
 

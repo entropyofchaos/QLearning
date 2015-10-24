@@ -5,10 +5,7 @@ import java.util.Scanner;
 /**
  * Created by phil on 10/19/15.
  */
-public class gameTest {
-
-
-
+public class Test {
 
     public static void main(String[] args) {
 
