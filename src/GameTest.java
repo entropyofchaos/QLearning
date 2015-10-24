@@ -5,7 +5,7 @@ import java.util.Scanner;
 /**
  * Created by phil on 10/19/15.
  */
-public class Test {
+public class GameTest {
 
     public static void main(String[] args) {
 
