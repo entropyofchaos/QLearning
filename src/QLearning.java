@@ -100,17 +100,17 @@ public class QLearning {
                                                     MutablePair<Integer, Integer> goal) {
         Vector<Pair<String, State>> thePathTaken = new Vector<>();
         Vector<MutablePair<String, State>> neighbors;
-        double reward;
         Vector<Pair> paths = new Vector<>();
         boolean reachedEnd = false;
-        double maxReward = 0;
 
         // Traverse the grid until we reach our goal. QLearning will have created a path that leads us directly
         // to the goal.
         while(!reachedEnd){
+
             // Check if we found the goal
             if(start.compareTo(goal)  == 0)
             {
+                System.out.println("Reached the goal");
                 reachedEnd = true;
             }
             else{
@@ -119,11 +119,15 @@ public class QLearning {
                 neighbors = q_table.getNeighbors(curState);
                 MutablePair<String, State> nextNeighbor = null;
                 System.out.println(start.toString());
+                double maxReward = 0;
+                double reward = 0;
 
+                nextNeighbor = neighbors.get(0); // should always pick a direction. probably should make it random, in the event that there is a reward tie.
                 for(MutablePair<String, State> neighbor : neighbors)
                 {
-                    nextNeighbor = neighbor;
+                    //nextNeighbor = neighbor;
                     reward = neighbor.getRight().getTransitionActionReward(neighbor.getLeft());
+                    System.out.println("reward for " + neighbor.getLeft() + " is " + reward);
                     if(reward > maxReward)
                     {
                         maxReward = reward;
@@ -136,6 +140,7 @@ public class QLearning {
 
 
                 thePathTaken.add(nextNeighbor);
+                System.out.println("Moved from " + start.toString() + " to " + nextNeighbor.getRight().getPosition().toString());
                 start = nextNeighbor.getRight().getPosition();
 
                 try {
