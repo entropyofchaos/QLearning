@@ -53,6 +53,7 @@ public class Grid {
     private void readFile(String path){
 
         Path filePath = Paths.get(path);
+        System.out.println(filePath);
         Charset charset = Charset.forName("ISO-8859-1");
 
         try {
@@ -157,8 +158,9 @@ public class Grid {
     public void printWorld(){
         for (int x = 0; x < mWorld.length; ++x){
             for (int y = 0; y < mWorld[x].length; ++y){
-                System.out.println(mWorld[x][y].getLeft());
+                System.out.print(mWorld[x][y].getLeft());
             }
+            System.out.println();
         }
     }
 

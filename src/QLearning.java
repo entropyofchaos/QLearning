@@ -2,6 +2,7 @@ import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Random;
+import java.util.Scanner;
 import java.util.Vector;
 
 public class QLearning {
@@ -37,6 +38,10 @@ public class QLearning {
 
         }
         q_table.printQTable();
+        Scanner in = new Scanner(System.in);
+        System.out.println("Press any key to begin traversal...");
+        in.next();
+
         traverseGrid(q_table.getState(start).getPosition(), q_table.getState(goal).getPosition());
     }
 

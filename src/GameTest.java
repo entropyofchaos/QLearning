@@ -9,8 +9,6 @@ public class GameTest {
 
     public static void main(String[] args) {
 
-        boolean aStarInteractive = false;
-        int algorithm = 5;
         int userStartX = 0;
         int userStartY = 0;
         int userGoalX = 0;
