@@ -1,6 +1,7 @@
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.io.IOException;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Vector;
@@ -12,8 +13,8 @@ public class QLearning {
     public QLearning(MutablePair<Integer, Integer> start, MutablePair<Integer, Integer> goal) {
 
         q_table = new Grid("world.txt", goal);
-        double alpha = 1;
-        double gamma = 0.8;
+        double alpha = .7;
+        double gamma = 0.5;
         int x;
         int y;
 
@@ -22,7 +23,7 @@ public class QLearning {
 
         Random generator = new Random();
 
-        for(int i = 0; i < 1000; ++i)
+        for(int i = 0; i < 10000; ++i)
         {
             Vector<MutablePair<String, State>> neighbors;
             MutablePair<Integer, Integer> randomLocation;
@@ -56,8 +57,11 @@ public class QLearning {
 
         if(depth > 150)
           return;
-        if(state.getReward() == 100)
-          return;
+        if(state.getReward() == 100){
+            System.out.println("reached the goal");
+            return;
+        }
+
 
         next_state = nextState(state);
         state.takeTransitionAction(next_state.getLeft());
@@ -105,7 +109,7 @@ public class QLearning {
         // to the goal.
         while(!reachedEnd){
             // Check if we found the goal
-            if(start == goal)
+            if(start.compareTo(goal)  == 0)
             {
                 reachedEnd = true;
             }
@@ -114,6 +118,7 @@ public class QLearning {
                 State curState = q_table.getState(start);
                 neighbors = q_table.getNeighbors(curState);
                 MutablePair<String, State> nextNeighbor = null;
+                System.out.println(start.toString());
 
                 for(MutablePair<String, State> neighbor : neighbors)
                 {
@@ -129,8 +134,17 @@ public class QLearning {
                 assert nextNeighbor != null;
                 System.out.println("Agent moves in direction:" + nextNeighbor.getLeft());
 
+
                 thePathTaken.add(nextNeighbor);
+                start = nextNeighbor.getRight().getPosition();
+
+                try {
+                    System.in.read();
+                } catch (IOException e) {
+
+                }
             }
+
         }
         return thePathTaken;
     }
