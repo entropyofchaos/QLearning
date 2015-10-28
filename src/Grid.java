@@ -35,11 +35,19 @@ public class Grid {
         readFile(path);
     }
 
+    /**
+     * Gets the number of columns in your grid. Max x value.
+     * @return Returns the number of columns
+     */
     public int getNumColumns(){
 
         return mCols;
     }
 
+    /**
+     * Gets the number of rows in your grid. Max y value.
+     * @return Returns the number of columns
+     */
     public int getNumRows(){
 
         return mRows;
@@ -65,19 +73,19 @@ public class Grid {
             mWorld = this.<MutablePair<Character, State>>get2DArray(arrayParam.getClass(), lines.size(),
                     lines.get(0).length());
 
-            for (int x = 0; x < mWorld.length; ++x)
+            for (int y = 0; y < mWorld.length; ++y)
             {
-                String oneLine = lines.get(x).trim();
+                String oneLine = lines.get(y).trim();
                 int lineSize = oneLine.length();
-                for (int y = 0; y < lineSize; ++y){
-                    mWorld[x][y] = new MutablePair<>();
-                    mWorld[x][y].setLeft(oneLine.charAt(y));
-                    State temp = new State(MutablePair.of(x, y));
+                for (int x = 0; x < lineSize; ++x){
+                    mWorld[y][x] = new MutablePair<>();
+                    mWorld[y][x].setLeft(oneLine.charAt(x));
+                    State temp = new State(MutablePair.of(y, x));
                     temp.addTransitionAction("right", 0);
                     temp.addTransitionAction("left", 0);
                     temp.addTransitionAction("down", 0);
                     temp.addTransitionAction("up", 0);
-                    mWorld[x][y].setRight(temp);
+                    mWorld[y][x].setRight(temp);
                 }
             }
 
@@ -95,10 +103,10 @@ public class Grid {
         // Go through all the characters in the grid map and see if we find any
         // x's. If we find one, it represents a wall, so we add it to the list
         // of mWalls.
-        for (int x = 0; x < mWorld.length; ++x){
-            for (int y = 0; y < mWorld[x].length; ++y){
-                if (mWorld[x][y].getLeft() == 'x'){
-                    mWalls.add(new MutablePair<>(x, y));
+        for (int y = 0; y < mWorld.length; ++y){
+            for (int x = 0; x < mWorld[y].length; ++x){
+                if (mWorld[y][x].getLeft() == 'x'){
+                    mWalls.add(new MutablePair<>(y, x));
                 }
             }
         }
@@ -120,23 +128,23 @@ public class Grid {
         int y = loc.getLeft();
 
         // Look at cell to the right
-        if(x + 1 < mRows && !mWalls.contains(new MutablePair<>(x + 1, y))) {
-            neighbors.add(new MutablePair<>("right", mWorld[x + 1][y].getRight()));
+        if(x + 1 < mCols && !mWalls.contains(new MutablePair<>(y, x + 1))) {
+            neighbors.add(new MutablePair<>("right", mWorld[y][x + 1].getRight()));
         }
 
         // Look at cell to the left
-        if(x - 1 >= 0 && !mWalls.contains(new MutablePair<>(x - 1, y))) {
-            neighbors.add(new MutablePair<>("left", mWorld[x - 1][y].getRight()));
+        if(x - 1 >= 0 && !mWalls.contains(new MutablePair<>(y, x - 1))) {
+            neighbors.add(new MutablePair<>("left", mWorld[y][x - 1].getRight()));
         }
 
         // Look at cell below
-        if(y + 1 < mCols && !mWalls.contains(new MutablePair<>(x, y + 1))) {
-            neighbors.add(new MutablePair<>("down", mWorld[x][y + 1].getRight()));
+        if(y + 1 < mRows && !mWalls.contains(new MutablePair<>(y + 1, x))) {
+            neighbors.add(new MutablePair<>("down", mWorld[y + 1][x].getRight()));
         }
 
         // Look at cell above
-        if(y - 1 >= 0 && !mWalls.contains(new MutablePair<>(x, y - 1))) {
-            neighbors.add(new MutablePair<>("up", mWorld[x][y - 1].getRight()));
+        if(y - 1 >= 0 && !mWalls.contains(new MutablePair<>(y - 1, x))) {
+            neighbors.add(new MutablePair<>("up", mWorld[y - 1][x].getRight()));
         }
 
         return neighbors;
@@ -156,9 +164,9 @@ public class Grid {
      * Prints the grid world to the console.
      */
     public void printWorld(){
-        for (int x = 0; x < mWorld.length; ++x){
-            for (int y = 0; y < mWorld[x].length; ++y){
-                System.out.print(mWorld[x][y].getLeft());
+        for (int y = 0; y < mWorld.length; ++y){
+            for (int x = 0; x < mWorld[y].length; ++x){
+                System.out.print(mWorld[y][x].getLeft());
             }
             System.out.println();
         }
@@ -169,9 +177,9 @@ public class Grid {
      */
     public void printRewards() {
 
-        for (int x = 0; x < mWorld.length; ++x){
-            for (int y = 0; y < mWorld[x].length; ++y){
-                System.out.print(mWorld[x][y].getRight().getReward() + " ");
+        for (int y = 0; y < mWorld.length; ++y){
+            for (int x = 0; x < mWorld[y].length; ++x){
+                System.out.print(mWorld[y][x].getRight().getReward() + " ");
             }
             System.out.println();
         }

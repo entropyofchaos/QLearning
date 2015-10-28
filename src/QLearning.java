@@ -12,7 +12,8 @@ public class QLearning {
 
     public QLearning(MutablePair<Integer, Integer> start, MutablePair<Integer, Integer> goal) {
 
-        q_table = new Grid("world.txt", goal);
+        q_table = new Grid("worldSmall.txt", goal);
+        // q_table = new Grid("world.txt", goal);
         double alpha = .7;
         double gamma = 0.5;
         int x;
@@ -28,9 +29,9 @@ public class QLearning {
             Vector<MutablePair<String, State>> neighbors;
             MutablePair<Integer, Integer> randomLocation;
             do{
-                x = generator.nextInt(q_table.getNumRows());
-                y = generator.nextInt(q_table.getNumColumns());
-                randomLocation = new MutablePair<>(x, y);
+                x = generator.nextInt(q_table.getNumColumns());
+                y = generator.nextInt(q_table.getNumRows());
+                randomLocation = new MutablePair<>(y, x);
 
                 neighbors = q_table.getNeighbors(q_table.getState(randomLocation));
             } while(neighbors.size() == 0 || q_table.getReward(randomLocation) == 100);
@@ -100,7 +101,6 @@ public class QLearning {
                                                     MutablePair<Integer, Integer> goal) {
         Vector<Pair<String, State>> thePathTaken = new Vector<>();
         Vector<MutablePair<String, State>> neighbors;
-        Vector<Pair> paths = new Vector<>();
         boolean reachedEnd = false;
 
         // Traverse the grid until we reach our goal. QLearning will have created a path that leads us directly
@@ -120,12 +120,10 @@ public class QLearning {
                 MutablePair<String, State> nextNeighbor = null;
                 System.out.println(start.toString());
                 double maxReward = 0;
-                double reward = 0;
+                double reward;
 
-                nextNeighbor = neighbors.get(0); // should always pick a direction. probably should make it random, in the event that there is a reward tie.
                 for(MutablePair<String, State> neighbor : neighbors)
                 {
-                    //nextNeighbor = neighbor;
                     reward = neighbor.getRight().getTransitionActionReward(neighbor.getLeft());
                     System.out.println("reward for " + neighbor.getLeft() + " is " + reward);
                     if(reward > maxReward)
@@ -133,6 +131,13 @@ public class QLearning {
                         maxReward = reward;
                         nextNeighbor = neighbor;
                     }
+                }
+
+                // If no neighbor was selected, this means all neighbors have a reward value of 0. So we select a
+                // random neighbor.
+                if (nextNeighbor == null) {
+                    Random generator = new Random();
+                    nextNeighbor = neighbors.get(generator.nextInt(neighbors.size()));
                 }
 
                 assert nextNeighbor != null;
