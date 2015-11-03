@@ -19,7 +19,7 @@ public class State {
 
     /**
      * Constructor for this state. A state is just a cell on the grid.
-     * @param position The X,Y position of the State
+     * @param position The Y,X position of the State
      */
     public State(MutablePair<Integer, Integer> position){
 

@@ -145,7 +145,9 @@ public class QLearning {
 
 
                 thePathTaken.add(nextNeighbor);
-                System.out.println("Moved from " + start.toString() + " to " + nextNeighbor.getRight().getPosition().toString());
+                MutablePair<Integer, Integer> end = nextNeighbor.getRight().getPosition();
+                System.out.println("Moved from " + '(' + start.getRight() + ',' + start.getLeft() + ')'
+                        + " to " + '(' + end.getRight() + ',' + end.getLeft() + ')');
                 start = nextNeighbor.getRight().getPosition();
 
                 try {

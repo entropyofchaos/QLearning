@@ -124,7 +124,7 @@ public class Grid {
 
         Vector<MutablePair<String, State>>  neighbors = new Vector<>();
         Pair<Integer, Integer> loc = state.getPosition();
-        int x = loc.getLeft();
+        int x = loc.getRight();
         int y = loc.getLeft();
 
         // Look at cell to the right
@@ -188,12 +188,12 @@ public class Grid {
     //please change this function after updating state
     public void printQTable() {
         String str;
-        for (int x = 0; x < mWorld.length; ++x) {
-            for (int y = 0; y < mWorld[x].length; ++y) {
+        for (int y = 0; y < mWorld.length; ++y) {
+            for (int x = 0; x < mWorld[y].length; ++x) {
                 str = "";
-                Set<String> actions = mWorld[x][y].getRight().getActions();
+                Set<String> actions = mWorld[y][x].getRight().getActions();
                 for (String action : actions) {
-                    str += action + " - " + mWorld[x][y].getRight().getTransitionActionReward(action) + " ";
+                    str += action + " - " + mWorld[y][x].getRight().getTransitionActionReward(action) + " ";
                 }
 
                 str = "State (" + x + ", " + y + ")'s Actions: " + str;

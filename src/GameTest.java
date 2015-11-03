@@ -23,7 +23,7 @@ public class GameTest {
         userGoalX = in.nextInt();
         System.out.println("Enter the Y coordinate of the start state.");
         userGoalY = in.nextInt();
-        new QLearning (new MutablePair<Integer, Integer>(userStartX, userStartY), new MutablePair<Integer, Integer>(userGoalX, userGoalY));
+        new QLearning (new MutablePair<>(userStartY, userStartX), new MutablePair<>(userGoalY, userGoalX));
 
     }
 }
