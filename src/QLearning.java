@@ -12,7 +12,7 @@ public class QLearning {
 
     public QLearning(MutablePair<Integer, Integer> start, MutablePair<Integer, Integer> goal) {
 
-        q_table = new Grid("worldSmall.txt", goal);
+        q_table = new Grid("data/worldSmall.txt", goal);
         // q_table = new Grid("world.txt", goal);
         double alpha = .7;
         double gamma = 0.5;
@@ -31,6 +31,7 @@ public class QLearning {
             do{
                 x = generator.nextInt(q_table.getNumColumns());
                 y = generator.nextInt(q_table.getNumRows());
+                System.out.println("row:"+y+"col"+x);
                 randomLocation = new MutablePair<>(y, x);
 
                 neighbors = q_table.getNeighbors(q_table.getState(randomLocation));
@@ -73,15 +74,13 @@ public class QLearning {
         }
 
         direction = next_state.getLeft();
-        reward = state.getTransitionActionReward(direction) + alpha *
-              (
-                  next_state.getRight().getReward() + gamma * findMax(actionRewards) -
-                  state.getTransitionActionReward(direction)
-              );
+        reward = state.getTransitionActionReward(direction) + alpha * (next_state.getRight().getReward() + gamma * findMax(actionRewards) - state.getTransitionActionReward(direction));
+
+//        state.setTransitionActionReward(direction,
+//                findMax(reward, next_state.getRight().getTransitionActionReward(direction)));
 
         state.setTransitionActionReward(direction,
-                findMax(reward, next_state.getRight().getTransitionActionReward(direction)));
-
+                findMax(reward, state.getTransitionActionReward(direction)));
         episode(next_state.getRight(), depth + 1, gamma, alpha);
 
   }
@@ -118,13 +117,13 @@ public class QLearning {
                 State curState = q_table.getState(start);
                 neighbors = q_table.getNeighbors(curState);
                 MutablePair<String, State> nextNeighbor = null;
-                System.out.println(start.toString());
+                System.out.println("Curr state"+start.getLeft()+","+start.getRight());
                 double maxReward = 0;
                 double reward;
 
                 for(MutablePair<String, State> neighbor : neighbors)
                 {
-                    reward = neighbor.getRight().getTransitionActionReward(neighbor.getLeft());
+                    reward = curState.getTransitionActionReward(neighbor.getLeft());
                     System.out.println("reward for " + neighbor.getLeft() + " is " + reward);
                     if(reward > maxReward)
                     {
@@ -146,8 +145,8 @@ public class QLearning {
 
                 thePathTaken.add(nextNeighbor);
                 MutablePair<Integer, Integer> end = nextNeighbor.getRight().getPosition();
-                System.out.println("Moved from " + '(' + start.getRight() + ',' + start.getLeft() + ')'
-                        + " to " + '(' + end.getRight() + ',' + end.getLeft() + ')');
+                System.out.println("Moved from " + '(' + start.getLeft()+ ',' + start.getRight()  + ')'
+                        + " to " + '(' + end.getLeft() + ',' + end.getRight() + ')');
                 start = nextNeighbor.getRight().getPosition();
 
                 try {

@@ -9,10 +9,10 @@ public class GameTest {
 
     public static void main(String[] args) {
 
-        int userStartX = 0;
-        int userStartY = 0;
-        int userGoalX = 0;
-        int userGoalY = 0;
+        int userStartX ;
+        int userStartY ;
+        int userGoalX ;
+        int userGoalY ;
 
         Scanner in = new Scanner(System.in);
         System.out.println("Enter the X coordinate of the start state.");
@@ -23,7 +23,7 @@ public class GameTest {
         userGoalX = in.nextInt();
         System.out.println("Enter the Y coordinate of the start state.");
         userGoalY = in.nextInt();
-        new QLearning (new MutablePair<>(userStartY, userStartX), new MutablePair<>(userGoalY, userGoalX));
+        new QLearning (new MutablePair<>(userStartX, userStartY), new MutablePair<>(userGoalX, userGoalY));
 
     }
 }

@@ -30,8 +30,6 @@ public class Grid {
         mRows = 0;
         mWalls = new Vector<>();
         mGoal = goal;
-        mGoal = goal;
-
         readFile(path);
     }
 
@@ -72,7 +70,7 @@ public class Grid {
             MutablePair<Character, State> arrayParam = new MutablePair<>();
             mWorld = this.<MutablePair<Character, State>>get2DArray(arrayParam.getClass(), lines.size(),
                     lines.get(0).length());
-
+            System.out.println("world dim:" +mWorld.length+"x"+mWorld[0].length);
             for (int y = 0; y < mWorld.length; ++y)
             {
                 String oneLine = lines.get(y).trim();
@@ -196,7 +194,7 @@ public class Grid {
                     str += action + " - " + mWorld[y][x].getRight().getTransitionActionReward(action) + " ";
                 }
 
-                str = "State (" + x + ", " + y + ")'s Actions: " + str;
+                str = "State (" + y + ", " + x + ")'s Actions: " + str;
                 System.out.println(str);
             }
         }
