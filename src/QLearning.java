@@ -12,7 +12,7 @@ public class QLearning {
 
     public QLearning(MutablePair<Integer, Integer> start, MutablePair<Integer, Integer> goal) {
 
-        q_table = new Grid("worldSmall.txt", goal);
+        q_table = new Grid("data/worldSmall.txt", goal);
         // q_table = new Grid("world.txt", goal);
         double alpha = .7;
         double gamma = 0.5;
@@ -124,7 +124,7 @@ public class QLearning {
 
                 for(MutablePair<String, State> neighbor : neighbors)
                 {
-                    reward = neighbor.getRight().getTransitionActionReward(neighbor.getLeft());
+                    reward = curState.getTransitionActionReward(neighbor.getLeft());
                     System.out.println("reward for " + neighbor.getLeft() + " is " + reward);
                     if(reward > maxReward)
                     {
