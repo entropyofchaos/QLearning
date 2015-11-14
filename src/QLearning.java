@@ -12,8 +12,8 @@ public class QLearning {
 
     public QLearning(MutablePair<Integer, Integer> start, MutablePair<Integer, Integer> goal) {
 
-        q_table = new Grid("data/worldSmall.txt", goal);
-        // q_table = new Grid("world.txt", goal);
+        //q_table = new Grid("data/worldSmall.txt", goal);
+         q_table = new Grid("data/world.txt", goal);
         double alpha = .7;
         double gamma = 0.5;
         int x;
@@ -150,8 +150,9 @@ public class QLearning {
                 start = nextNeighbor.getRight().getPosition();
 
                 try {
-                    System.in.read();
-                } catch (IOException e) {
+//                    Scanner in = new Scanner(System.in);
+//                    in.nextLine();
+                } catch (Exception e) {
 
                 }
             }
