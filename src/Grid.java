@@ -182,7 +182,11 @@ public class Grid {
         System.out.println("size is " + getNumRows() + "x" + getNumColumns());
         for (int y = 0; y < mWorld.length; ++y){
             for (int x = 0; x < mWorld[y].length; ++x){
-                System.out.print(mWorld[y][x].isWall());
+                if (mWorld[y][x].isWall()) {
+                    System.out.print('x');
+                }else{
+                    System.out.print('-');
+                }
             }
             System.out.println();
         }
