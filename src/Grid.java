@@ -25,7 +25,7 @@ public class Grid {
             this.mIsWall = mIsWall;
         }
 
-        public void setSate(State mSate) {
+        public void setState(State mSate) {
             this.mSate = mSate;
         }
 
@@ -97,13 +97,13 @@ public class Grid {
                     temp.addTransitionAction("left", 0);
                     temp.addTransitionAction("down", 0);
                     temp.addTransitionAction("up", 0);
-                    mWorld[y][x].setSate(temp);
+                    mWorld[y][x].setState(temp);
                 }
             }
 
             State tempState = mWorld[mGoal.getY()][mGoal.getX()].getSate();
             tempState.setReward(100);
-            mWorld[mGoal.getY()][mGoal.getX()].setSate(tempState);
+            mWorld[mGoal.getY()][mGoal.getX()].setState(tempState);
 
             mRows = mWorld.length;
             mCols = mWorld[0].length;
