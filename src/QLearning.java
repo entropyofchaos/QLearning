@@ -1,106 +1,121 @@
-import org.apache.commons.lang3.tuple.MutablePair;
-import org.apache.commons.lang3.tuple.Pair;
-
-import java.io.IOException;
 import java.util.Random;
-import java.util.Scanner;
+import java.util.Set;
 import java.util.Vector;
 
 public class QLearning {
 
     private Grid q_table;
 
-    public QLearning(MutablePair<Integer, Integer> start, MutablePair<Integer, Integer> goal) {
+    public QLearning(Position start, Position goal) {
 
-        q_table = new Grid("worldSmall.txt", goal);
-        // q_table = new Grid("world.txt", goal);
-        double alpha = .7;
-        double gamma = 0.5;
+        //q_table = new Grid("worldSmall.txt", goal);
+        q_table = new Grid("world.txt", goal);
+        double alpha = 1;
+        double gamma = 0.8;
         int x;
         int y;
 
         q_table.printWorld();
         q_table.printRewards();
 
-        Random generator = new Random();
+        Random generator = new Random(5);
 
-        for(int i = 0; i < 10000; ++i)
+        long startTime = System.currentTimeMillis();
+
+        for(int i = 0; i < 100000; ++i)
         {
-            Vector<MutablePair<String, State>> neighbors;
-            MutablePair<Integer, Integer> randomLocation;
+            Position randomLocation;
             do{
                 x = generator.nextInt(q_table.getNumColumns());
                 y = generator.nextInt(q_table.getNumRows());
-                randomLocation = new MutablePair<>(y, x);
+                randomLocation = new Position(y, x);
 
-                neighbors = q_table.getNeighbors(q_table.getState(randomLocation));
-            } while(neighbors.size() == 0 || q_table.getReward(randomLocation) == 100);
+            } while(q_table.locationIsWall(randomLocation) || q_table.getReward(randomLocation) > 99.999);
 
             episode(q_table.getState(randomLocation), 0, gamma, alpha);
-
         }
-        q_table.printQTable();
-        Scanner in = new Scanner(System.in);
-        System.out.println("Press any key to begin traversal...");
-        in.next();
 
-        traverseGrid(q_table.getState(start).getPosition(), q_table.getState(goal).getPosition());
+        long endTime = System.currentTimeMillis();
+
+        traverseGrid(start, goal);
+
+        System.out.println("Time to complete: " + (endTime-startTime));
     }
 
     // gets neighbors, updates the reward, and then moves to the next state
     // returns if depth exceeded, goal reached, or an invalid state reached
     private void episode(State state, int depth, double gamma, double alpha){
 
-        Vector<MutablePair<String, State>> neighbors = q_table.getNeighbors(state);
-        MutablePair<String, State> next_state;
+        StatePair next_state;
         double reward;
         String direction;
 
         if(depth > 150)
-          return;
-        if(state.getReward() == 100){
-            System.out.println("reached the goal");
+            return;
+        if(state.getReward() > 99.999){
+            //System.out.println("reached the goal");
             return;
         }
 
-
+        // Figure out the next state to take based on the current state. This is chosen at random from the currents
+        // states neighbors that aren't walls.
         next_state = nextState(state);
-        state.takeTransitionAction(next_state.getLeft());
 
-        Vector<Double> actionRewards = new Vector<>();
-        for (MutablePair<String, State> neighbor : neighbors) {
-          actionRewards.add(next_state.getRight().getTransitionActionReward(neighbor.getLeft()));
-        }
+        // Take the action so we can keep track of how many times a direction was taken from this state
+        state.takeTransitionAction(next_state.getDirection());
 
-        direction = next_state.getLeft();
+        // Go through the possible actions for the next state and get their action reward values. We will use this to
+        // calculate the max action value for all possible actions from the next state
+        direction = next_state.getDirection();
         reward = state.getTransitionActionReward(direction) + alpha *
               (
-                  next_state.getRight().getReward() + gamma * findMax(actionRewards) -
+                  next_state.getState().getReward() +
+                  gamma * maxActionReward(next_state.getState()) -
                   state.getTransitionActionReward(direction)
               );
 
+        // Set the new transaction reward. We set it based on the max of the current reward for the transition and the
+        // calculated reward. This is done to guarantee that the transition action reward value will only ever increase
+        // and no decrease.
         state.setTransitionActionReward(direction,
-                findMax(reward, next_state.getRight().getTransitionActionReward(direction)));
-
-        episode(next_state.getRight(), depth + 1, gamma, alpha);
-
+                Math.max(reward, state.getTransitionActionReward(direction)));
+        episode(next_state.getState(), depth + 1, gamma, alpha);
   }
 
-    private MutablePair<String, State> nextState(State state) {
+    public double maxActionReward(State state){
+        double max = 0.0;
+        Set<String> actions = state.getActions();
+        for(String s : actions){
+            if(state.getTransitionActionReward(s) > max){
+                max = state.getTransitionActionReward(s);
+            }
+        }
+        return max;
+    }
 
-        Vector<MutablePair<String, State>> neighbors = q_table.getNeighbors(state);
+    static Random nextStateGenerator = new Random(5);
+
+    /**
+     * Provides the next state to explore given the current state. The current state must not be surrounded by walls
+     * @param state The current state
+     * @return A pair with the next direction and its corresponding state
+     */
+    private StatePair nextState(State state) {
+
+        // Get a vector of the next possible states from the current state
+        Vector<StatePair> neighbors = q_table.getNeighbors(state);
 
         // Choose a random direction to go next from the list of available directions
-        Random generator = new Random();
-        int index = generator.nextInt(neighbors.size());
+        int index = nextStateGenerator.nextInt(neighbors.size());
 
+        // Return the random state chosen
         return neighbors.elementAt(index);
     }
 
-    public Vector<Pair<String, State>> traverseGrid(MutablePair<Integer, Integer> start,
-                                                    MutablePair<Integer, Integer> goal) {
-        Vector<Pair<String, State>> thePathTaken = new Vector<>();
-        Vector<MutablePair<String, State>> neighbors;
+    public Vector<StatePair> traverseGrid(Position start, Position goal) {
+
+        Vector<StatePair> thePathTaken = new Vector<>();
+        Vector<StatePair> neighbors;
         boolean reachedEnd = false;
 
         // Traverse the grid until we reach our goal. QLearning will have created a path that leads us directly
@@ -108,24 +123,23 @@ public class QLearning {
         while(!reachedEnd){
 
             // Check if we found the goal
-            if(start.compareTo(goal)  == 0)
-            {
+            if(start.equals(goal)){
                 System.out.println("Reached the goal");
                 reachedEnd = true;
-            }
-            else{
+            }else{
                 // Else we haven't found the goal yet.
                 State curState = q_table.getState(start);
                 neighbors = q_table.getNeighbors(curState);
-                MutablePair<String, State> nextNeighbor = null;
-                System.out.println(start.toString());
+                StatePair nextNeighbor = null;
+                System.out.println('(' + start.getX() + ',' + start.getY() + ')');
                 double maxReward = 0;
                 double reward;
 
-                for(MutablePair<String, State> neighbor : neighbors)
+                for(StatePair neighbor : neighbors)
                 {
-                    reward = neighbor.getRight().getTransitionActionReward(neighbor.getLeft());
-                    System.out.println("reward for " + neighbor.getLeft() + " is " + reward);
+                    // Look at the reward values to transition to the next neighbor
+                    reward = curState.getTransitionActionReward(neighbor.getDirection());
+                    System.out.println("reward for " + neighbor.getDirection() + " is " + reward);
                     if(reward > maxReward)
                     {
                         maxReward = reward;
@@ -136,48 +150,27 @@ public class QLearning {
                 // If no neighbor was selected, this means all neighbors have a reward value of 0. So we select a
                 // random neighbor.
                 if (nextNeighbor == null) {
-                    Random generator = new Random();
-                    nextNeighbor = neighbors.get(generator.nextInt(neighbors.size()));
+                    //Random generator = new Random();
+                    //nextNeighbor = neighbors.get(generator.nextInt(neighbors.size()));
+                    nextNeighbor = neighbors.get(0);
                 }
 
                 assert nextNeighbor != null;
-                System.out.println("Agent moves in direction:" + nextNeighbor.getLeft());
+                System.out.println("Agent moves in direction: " + nextNeighbor.getDirection());
 
 
+                // Add state to vector representing the path taken
                 thePathTaken.add(nextNeighbor);
-                MutablePair<Integer, Integer> end = nextNeighbor.getRight().getPosition();
-                System.out.println("Moved from " + '(' + start.getRight() + ',' + start.getLeft() + ')'
-                        + " to " + '(' + end.getRight() + ',' + end.getLeft() + ')');
-                start = nextNeighbor.getRight().getPosition();
 
-                try {
-                    System.in.read();
-                } catch (IOException e) {
+                Position nextPosition = nextNeighbor.getState().getPosition();
+                System.out.println("Moved from " + '(' + start.getX() + ',' + start.getY() + ')'
+                        + " to " + '(' + nextPosition.getX() + ',' + nextPosition.getY() + ')');
 
-                }
+                // Set the start position to the next position that was just found
+                start = nextPosition;
             }
-
         }
         return thePathTaken;
     }
 
-    double findMax(Vector<Double> vals) {
-        double max = Double.NEGATIVE_INFINITY;
-
-        for (double d : vals) {
-            if (d > max) max = d;
-        }
-
-        return max;
-    }
-
-    double findMax(double... vals) {
-        double max = Double.NEGATIVE_INFINITY;
-
-        for (double d : vals) {
-            if (d > max) max = d;
-        }
-
-        return max;
-    }
 }

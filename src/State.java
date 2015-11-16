@@ -4,7 +4,7 @@ import org.apache.commons.lang3.tuple.MutablePair;
 
 public class State {
 
-    private MutablePair<Integer, Integer> mPosition;
+    private Position mPosition;
     /**
      * Map of actions that can be taken. The key is the name of the action (left, right, up, down).
      * The value is a pair of values where the first is the number of times this action was taken
@@ -21,7 +21,7 @@ public class State {
      * Constructor for this state. A state is just a cell on the grid.
      * @param position The Y,X position of the State
      */
-    public State(MutablePair<Integer, Integer> position){
+    public State(Position position){
 
         mPosition = position;
         mActions = new HashMap<>();
@@ -92,7 +92,7 @@ public class State {
      * Gets the position of this State.
      * @return The position of the State
      */
-    public MutablePair<Integer, Integer> getPosition(){
+    public Position getPosition(){
 
         return mPosition;
     }

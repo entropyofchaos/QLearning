@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -7,29 +6,45 @@ import java.nio.file.Paths;
 import java.util.Vector;
 import java.util.List;
 import java.util.Set;
-import org.apache.commons.lang3.tuple.MutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * Class to represent our grid mWorld for the QLearning algorithm.
  */
 public class Grid {
 
-    private MutablePair<Character, State>[][] mWorld;
+    private GridCell[][] mWorld;
     private int mCols;
     private int mRows;
-    private Vector<MutablePair<Integer, Integer>> mWalls;
-    private MutablePair<Integer, Integer> mGoal;
+    private Position mGoal;
+
+    private class GridCell{
+        boolean mIsWall;
+        State mSate;
+
+        public void setIsWall(boolean mIsWall) {
+            this.mIsWall = mIsWall;
+        }
+
+        public void setSate(State mSate) {
+            this.mSate = mSate;
+        }
+
+        public boolean isWall() {
+            return mIsWall;
+        }
+
+        public State getSate() {
+            return mSate;
+        }
+    }
 
     /**
      * Default constructor
      */
-    public Grid(String path, MutablePair<Integer, Integer> goal){
+    public Grid(String path, Position goal){
 
         mCols = 0;
         mRows = 0;
-        mWalls = new Vector<>();
-        mGoal = goal;
         mGoal = goal;
 
         readFile(path);
@@ -54,8 +69,7 @@ public class Grid {
     }
 
     /**
-     * Reads the grid mWorld file into the class. Determines which locations are
-     * valid and which locations are mWalls.
+     * Reads the grid mWorld file into the class.
      * @param path The path to the grid mWorld file
      */
     private void readFile(String path){
@@ -69,29 +83,27 @@ public class Grid {
             // append the list of strings to our vector of strings. This
             // vector represents the lines of our map file.
             List<String> lines = Files.readAllLines(filePath, charset);
-            MutablePair<Character, State> arrayParam = new MutablePair<>();
-            mWorld = this.<MutablePair<Character, State>>get2DArray(arrayParam.getClass(), lines.size(),
-                    lines.get(0).length());
+            mWorld = new GridCell[lines.size()][lines.get(0).length()];
 
             for (int y = 0; y < mWorld.length; ++y)
             {
                 String oneLine = lines.get(y).trim();
                 int lineSize = oneLine.length();
                 for (int x = 0; x < lineSize; ++x){
-                    mWorld[y][x] = new MutablePair<>();
-                    mWorld[y][x].setLeft(oneLine.charAt(x));
-                    State temp = new State(MutablePair.of(y, x));
+                    mWorld[y][x] = new GridCell();
+                    mWorld[y][x].setIsWall(oneLine.charAt(x) == 'x');
+                    State temp = new State(new Position(y, x));
                     temp.addTransitionAction("right", 0);
                     temp.addTransitionAction("left", 0);
                     temp.addTransitionAction("down", 0);
                     temp.addTransitionAction("up", 0);
-                    mWorld[y][x].setRight(temp);
+                    mWorld[y][x].setSate(temp);
                 }
             }
 
-            State tempState = mWorld[mGoal.getLeft()][mGoal.getRight()].getRight();
+            State tempState = mWorld[mGoal.getY()][mGoal.getX()].getSate();
             tempState.setReward(100);
-            mWorld[mGoal.getLeft()][mGoal.getRight()].setRight(tempState);
+            mWorld[mGoal.getY()][mGoal.getX()].setSate(tempState);
 
             mRows = mWorld.length;
             mCols = mWorld[0].length;
@@ -99,74 +111,78 @@ public class Grid {
         } catch (IOException e){
             System.out.println(e.toString());
         }
-
-        // Go through all the characters in the grid map and see if we find any
-        // x's. If we find one, it represents a wall, so we add it to the list
-        // of mWalls.
-        for (int y = 0; y < mWorld.length; ++y){
-            for (int x = 0; x < mWorld[y].length; ++x){
-                if (mWorld[y][x].getLeft() == 'x'){
-                    mWalls.add(new MutablePair<>(y, x));
-                }
-            }
-        }
     }
 
     /**
      * Helper function to retrieve all valid adjacent cells to the current cell.
      * All adjacent cells that would be an invalid location, such as a wall are
-     * not added to the vector.
+     * not added to the vector. Also, if the position provided is a wall, no neighbors
+     * will be returned.
      * @param state The state to neighbors from
      * @return A vector of valid adjacent cells where the first parameter is the
      * direction name and the second is the actual State
      */
-    Vector<MutablePair<String, State>> getNeighbors(State state){
+    Vector<StatePair> getNeighbors(State state){
 
-        Vector<MutablePair<String, State>>  neighbors = new Vector<>();
-        Pair<Integer, Integer> loc = state.getPosition();
-        int x = loc.getRight();
-        int y = loc.getLeft();
+        Vector<StatePair>  neighbors = new Vector<>();
+        Position loc = state.getPosition();
+        int x = loc.getX();
+        int y = loc.getY();
 
-        // Look at cell to the right
-        if(x + 1 < mCols && !mWalls.contains(new MutablePair<>(y, x + 1))) {
-            neighbors.add(new MutablePair<>("right", mWorld[y][x + 1].getRight()));
+        // Check that provided state is not a wall
+        if (!locationIsWall(loc)) {
+
+            // Look at cell to the right
+            if (x + 1 < mCols && !locationIsWall(new Position(y, x + 1))) {
+                neighbors.add(new StatePair("right", mWorld[y][x + 1].getSate()));
+            }
+
+            // Look at cell to the left
+            if (x - 1 >= 0 && !locationIsWall(new Position(y, x - 1))) {
+                neighbors.add(new StatePair("left", mWorld[y][x - 1].getSate()));
+            }
+
+            // Look at cell below
+            if (y + 1 < mRows && !locationIsWall(new Position(y + 1, x))) {
+                neighbors.add(new StatePair("down", mWorld[y + 1][x].getSate()));
+            }
+
+            // Look at cell above
+            if (y - 1 >= 0 && !locationIsWall(new Position(y - 1, x))) {
+                neighbors.add(new StatePair("up", mWorld[y - 1][x].getSate()));
+            }
         }
-
-        // Look at cell to the left
-        if(x - 1 >= 0 && !mWalls.contains(new MutablePair<>(y, x - 1))) {
-            neighbors.add(new MutablePair<>("left", mWorld[y][x - 1].getRight()));
-        }
-
-        // Look at cell below
-        if(y + 1 < mRows && !mWalls.contains(new MutablePair<>(y + 1, x))) {
-            neighbors.add(new MutablePair<>("down", mWorld[y + 1][x].getRight()));
-        }
-
-        // Look at cell above
-        if(y - 1 >= 0 && !mWalls.contains(new MutablePair<>(y - 1, x))) {
-            neighbors.add(new MutablePair<>("up", mWorld[y - 1][x].getRight()));
-        }
-
         return neighbors;
     }
 
-    public double getReward(MutablePair<Integer, Integer> loc){
-
-        return getState(loc).getReward();
+    /**
+     * Returns if the location provided is a wall
+     * @param pos The location to check
+     * @return True if the location is a wall and false if it is not
+     */
+    boolean locationIsWall(Position pos)
+    {
+        return mWorld[pos.getY()][pos.getX()].isWall();
     }
 
-    public State getState(MutablePair<Integer, Integer> loc)
+    public double getReward(Position position){
+
+        return getState(position).getReward();
+    }
+
+    public State getState(Position position)
     {
-        return mWorld[loc.getLeft()][loc.getRight()].getRight();
+        return mWorld[position.getY()][position.getX()].getSate();
     }
 
     /**
      * Prints the grid world to the console.
      */
     public void printWorld(){
+        System.out.println("size is " + getNumRows() + "x" + getNumColumns());
         for (int y = 0; y < mWorld.length; ++y){
             for (int x = 0; x < mWorld[y].length; ++x){
-                System.out.print(mWorld[y][x].getLeft());
+                System.out.print(mWorld[y][x].isWall());
             }
             System.out.println();
         }
@@ -179,7 +195,7 @@ public class Grid {
 
         for (int y = 0; y < mWorld.length; ++y){
             for (int x = 0; x < mWorld[y].length; ++x){
-                System.out.print(mWorld[y][x].getRight().getReward() + " ");
+                System.out.print(mWorld[y][x].getSate().getReward() + " ");
             }
             System.out.println();
         }
@@ -191,22 +207,15 @@ public class Grid {
         for (int y = 0; y < mWorld.length; ++y) {
             for (int x = 0; x < mWorld[y].length; ++x) {
                 str = "";
-                Set<String> actions = mWorld[y][x].getRight().getActions();
+                Set<String> actions = mWorld[y][x].getSate().getActions();
                 for (String action : actions) {
-                    str += action + " - " + mWorld[y][x].getRight().getTransitionActionReward(action) + " ";
+                    str += action + " - " + mWorld[y][x].getSate().getTransitionActionReward(action) + " ";
                 }
 
                 str = "State (" + x + ", " + y + ")'s Actions: " + str;
                 System.out.println(str);
             }
         }
-    }
-
-    private <E> E[][] get2DArray(Class<? extends MutablePair> clazz, int firstD, int secondD) {
-        @SuppressWarnings("unchecked")
-        E[][] arr = (E[][]) Array.newInstance(clazz, firstD, secondD);
-
-        return arr;
     }
 
 
