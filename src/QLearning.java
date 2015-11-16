@@ -6,33 +6,64 @@ public class QLearning {
 
     private Grid q_table;
 
+    private class EpisodeRunner implements Runnable {
+
+        double mGamma;
+        double mAlpha;
+        Random generator;
+
+        EpisodeRunner(double alpha, double gamma) {
+            mAlpha = alpha;
+            mGamma = gamma;
+            generator = new Random(5);
+        }
+
+        @Override
+        public void run() {
+            int x;
+            int y;
+            int numEpisodes = 10000;
+            for(int i = 0; i < numEpisodes; ++i)
+            {
+                Position randomLocation;
+                do{
+                    x = generator.nextInt(q_table.getNumColumns());
+                    y = generator.nextInt(q_table.getNumRows());
+                    randomLocation = new Position(y, x);
+
+                } while(q_table.locationIsWall(randomLocation) || q_table.getReward(randomLocation) > 99.999);
+
+                episode(q_table.getState(randomLocation), 0, mGamma, mAlpha);
+            }
+        }
+    }
+
     public QLearning(Position start, Position goal) {
 
         //q_table = new Grid("worldSmall.txt", goal);
         q_table = new Grid("world.txt", goal);
         double alpha = 1;
         double gamma = 0.8;
-        int x;
-        int y;
 
         q_table.printWorld();
         q_table.printRewards();
 
-        Random generator = new Random(5);
-
         long startTime = System.currentTimeMillis();
 
-        for(int i = 0; i < 100000; ++i)
-        {
-            Position randomLocation;
-            do{
-                x = generator.nextInt(q_table.getNumColumns());
-                y = generator.nextInt(q_table.getNumRows());
-                randomLocation = new Position(y, x);
+        Vector<Thread> threads = new Vector<>();
 
-            } while(q_table.locationIsWall(randomLocation) || q_table.getReward(randomLocation) > 99.999);
+        for (int i = 0; i < 10; ++i) {
+            Thread t = new Thread(new EpisodeRunner(alpha, gamma));
+            threads.addElement(t);
+            t.start();
+        }
 
-            episode(q_table.getState(randomLocation), 0, gamma, alpha);
+        for (int i = 0; i < 10; ++i) {
+            try {
+                threads.elementAt(i).join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
         long endTime = System.currentTimeMillis();

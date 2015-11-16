@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 import org.apache.commons.lang3.tuple.MutablePair;
 
 public class State {
@@ -17,6 +18,8 @@ public class State {
      */
     private double mReward;
 
+    private Semaphore mMutex;
+
     /**
      * Constructor for this state. A state is just a cell on the grid.
      * @param position The Y,X position of the State
@@ -26,6 +29,7 @@ public class State {
         mPosition = position;
         mActions = new HashMap<>();
         mReward = 0;
+        mMutex = new Semaphore(1);
     }
 
     /**
@@ -37,10 +41,17 @@ public class State {
      */
     public void addTransitionAction(String direction, double rewardValue){
 
-        // When adding a transition, we set the first variable of the pair (num times taken)
-        // to 0 since we have never taken this action yet and the second value to the reward
-        // value for taking this action.
-        mActions.put(direction, new MutablePair<>(0, rewardValue));
+        try {
+            mMutex.acquire();
+            // When adding a transition, we set the first variable of the pair (num times taken)
+            // to 0 since we have never taken this action yet and the second value to the reward
+            // value for taking this action.
+            mActions.put(direction, new MutablePair<>(0, rewardValue));
+        } catch(InterruptedException ie) {
+            // ...
+        } finally {
+            mMutex.release();
+        }
     }
 
     /**
@@ -50,10 +61,17 @@ public class State {
      */
     public void setTransitionActionReward(String direction, double rewardValue){
 
-        // Update reward value for this direction and set the updated pair back into the hashmap
-        MutablePair<Integer, Double> oldValue = mActions.get(direction);
-        oldValue.setRight(rewardValue);
-        mActions.put(direction, oldValue);
+        try {
+            mMutex.acquire();
+            // Update reward value for this direction and set the updated pair back into the hashmap
+            MutablePair<Integer, Double> oldValue = mActions.get(direction);
+            oldValue.setRight(rewardValue);
+            mActions.put(direction, oldValue);
+        } catch(InterruptedException ie) {
+            // ...
+        } finally {
+            mMutex.release();
+        }
     }
 
     /**
@@ -63,7 +81,17 @@ public class State {
      */
     public double getTransitionActionReward(String direction){
 
-        return mActions.get(direction).getRight();
+        double reward = 0;
+        try {
+            mMutex.acquire();
+            reward = mActions.get(direction).getRight();
+        } catch(InterruptedException ie) {
+            // ...
+        } finally {
+            mMutex.release();
+        }
+
+        return reward;
     }
 
     /**
@@ -72,10 +100,17 @@ public class State {
      */
     public void takeTransitionAction(String direction){
 
-        // Update the number of times  value for this direction and set the updated pair back into the hashmap
-        MutablePair<Integer, Double> oldValue = mActions.get(direction);
-        oldValue.setLeft(oldValue.getLeft() + 1);
-        mActions.put(direction, oldValue);
+        try {
+            mMutex.acquire();
+            // Update the number of times  value for this direction and set the updated pair back into the hashmap
+            MutablePair<Integer, Double> oldValue = mActions.get(direction);
+            oldValue.setLeft(oldValue.getLeft() + 1);
+            mActions.put(direction, oldValue);
+        } catch(InterruptedException ie) {
+            // ...
+        } finally {
+            mMutex.release();
+        }
     }
 
     /**
@@ -85,7 +120,18 @@ public class State {
      */
     public int numTransitionActionsTaken(String direction){
 
-        return mActions.get(direction).getLeft();
+        int numTransitionActions = 0;
+
+        try {
+            mMutex.acquire();
+            numTransitionActions = mActions.get(direction).getLeft();
+        } catch(InterruptedException ie) {
+            // ...
+        } finally {
+            mMutex.release();
+        }
+
+        return numTransitionActions;
     }
 
     /**
@@ -94,7 +140,18 @@ public class State {
      */
     public Position getPosition(){
 
-        return mPosition;
+        Position pos = null;
+
+        try {
+            mMutex.acquire();
+            pos = mPosition;
+        } catch(InterruptedException ie) {
+            // ...
+        } finally {
+            mMutex.release();
+        }
+
+        return pos;
     }
 
     /**
@@ -103,7 +160,18 @@ public class State {
      */
     public Set<String> getActions(){
 
-        return mActions.keySet();
+        Set<String> keys = null;
+
+        try {
+            mMutex.acquire();
+            keys = mActions.keySet();
+        } catch(InterruptedException ie) {
+            // ...
+        } finally {
+            mMutex.release();
+        }
+
+        return keys;
     }
 
     /**
@@ -112,7 +180,14 @@ public class State {
      */
     public void setReward(double reward){
 
-        mReward = reward;
+        try {
+            mMutex.acquire();
+            mReward = reward;
+        } catch(InterruptedException ie) {
+            // ...
+        } finally {
+            mMutex.release();
+        }
     }
 
     /**
@@ -121,7 +196,18 @@ public class State {
      */
     public double getReward(){
 
-        return mReward;
+        double reward = 0;
+
+        try {
+            mMutex.acquire();
+            reward = mReward;
+        } catch(InterruptedException ie) {
+            // ...
+        } finally {
+            mMutex.release();
+        }
+
+        return reward;
     }
 
 }
