@@ -17,7 +17,6 @@ public class QLearning {
             mAlpha = alpha;
             mGamma = gamma;
             generator = new Random(5);
-            generator = new Random(5);
         }
 
         @Override
