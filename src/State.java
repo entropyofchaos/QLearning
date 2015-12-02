@@ -87,7 +87,7 @@ public class State {
      */
     public int numTransitionActionsTaken(String direction){
 
-        int numTransitionActions = numTransitionActions = mActions.get(direction).getLeft();
+        int numTransitionActions = mActions.get(direction).getLeft();
         return numTransitionActions;
     }
 
