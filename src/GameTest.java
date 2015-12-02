@@ -27,6 +27,7 @@ public class GameTest {
         System.out.println("0 - None");
         System.out.println("1 - SemaphoreLocked");
         System.out.println("2 - Synchronized");
+        System.out.println("3 - TTAS");
         lockType = Grid.LockType.values()[in.nextInt()];
         System.out.println("Enter how many threads to use?");
         numThreads = in.nextInt();
