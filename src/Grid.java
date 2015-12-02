@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.Vector;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Class to represent our grid mWorld for the QLearning algorithm.
@@ -16,6 +17,7 @@ public class Grid {
     private int mCols;
     private int mRows;
     private Position mGoal;
+    private LockType mLockType;
 
     private class GridCell{
         boolean mIsWall;
@@ -41,11 +43,12 @@ public class Grid {
     /**
      * Default constructor
      */
-    public Grid(String path, Position goal){
+    public Grid(String path, Position goal, LockType lockType){
 
         mCols = 0;
         mRows = 0;
         mGoal = goal;
+        mLockType = lockType;
 
         readFile(path);
     }
@@ -92,7 +95,7 @@ public class Grid {
                 for (int x = 0; x < lineSize; ++x){
                     mWorld[y][x] = new GridCell();
                     mWorld[y][x].setIsWall(oneLine.charAt(x) == 'x');
-                    State temp = new State(new Position(y, x));
+                    State temp = createState(mLockType, new Position(y, x));
                     temp.addTransitionAction("right", 0);
                     temp.addTransitionAction("left", 0);
                     temp.addTransitionAction("down", 0);
@@ -220,6 +223,31 @@ public class Grid {
                 System.out.println(str);
             }
         }
+    }
+
+    public enum LockType {
+        None, SemaphoreLocked, Synchronized
+    }
+
+    private State createState(LockType lockType, Position position) {
+
+        State returnState;
+        switch (lockType) {
+            case None:
+                returnState = new State(position);
+                break;
+            case SemaphoreLocked:
+                returnState = new StateSemaphoreLocked(position);
+                break;
+            case Synchronized:
+                returnState = new StateSynchronized(position);
+                break;
+            default:
+                returnState = new State(position);
+                break;
+        }
+
+        return returnState;
     }
 
 

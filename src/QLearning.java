@@ -5,6 +5,7 @@ import java.util.Vector;
 public class QLearning {
 
     private Grid q_table;
+    private int mNumThreads;
 
     private class EpisodeRunner implements Runnable {
 
@@ -16,13 +17,14 @@ public class QLearning {
             mAlpha = alpha;
             mGamma = gamma;
             generator = new Random(5);
+            generator = new Random(5);
         }
 
         @Override
         public void run() {
             int x;
             int y;
-            int numEpisodes = 10000;
+            int numEpisodes = 100000 / mNumThreads;
             for(int i = 0; i < numEpisodes; ++i)
             {
                 Position randomLocation;
@@ -38,39 +40,41 @@ public class QLearning {
         }
     }
 
-    public QLearning(Position start, Position goal) {
+    public QLearning(Position start, Position goal, Grid.LockType lockType, int numThreads) {
+
+        mNumThreads = numThreads;
 
         //q_table = new Grid("worldSmall.txt", goal);
-        q_table = new Grid("world.txt", goal);
+        q_table = new Grid("world.txt", goal, lockType);
         double alpha = 1;
         double gamma = 0.8;
 
         q_table.printWorld();
         q_table.printRewards();
 
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
 
-        Vector<Thread> threads = new Vector<>();
+        Thread[] threads = new Thread[mNumThreads];
 
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < mNumThreads; ++i) {
             Thread t = new Thread(new EpisodeRunner(alpha, gamma));
-            threads.addElement(t);
+            threads[i] = t;
             t.start();
         }
 
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < mNumThreads; ++i) {
             try {
-                threads.elementAt(i).join();
+                threads[i].join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
 
-        long endTime = System.currentTimeMillis();
+        long endTime = System.nanoTime();
 
         traverseGrid(start, goal);
 
-        System.out.println("Time to complete: " + (endTime-startTime));
+        System.out.println("Time to complete: " + ((endTime-startTime) * 1000.0));
     }
 
     // gets neighbors, updates the reward, and then moves to the next state
