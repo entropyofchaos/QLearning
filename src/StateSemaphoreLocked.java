@@ -25,14 +25,7 @@ public class StateSemaphoreLocked extends State {
     @Override
     public void addTransitionAction(String direction, double rewardValue){
 
-        try {
-            mMutex.acquire();
-            super.addTransitionAction(direction, rewardValue);
-        } catch(InterruptedException ie) {
-            // ...
-        } finally {
-            mMutex.release();
-        }
+        super.addTransitionAction(direction, rewardValue);
     }
 
     /**

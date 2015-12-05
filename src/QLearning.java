@@ -1,40 +1,46 @@
+import java.lang.reflect.Method;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
 
 public class QLearning {
 
-    private Grid q_table;
+    private Grid mQTable;
     private int mNumThreads;
 
     private class EpisodeRunner implements Runnable {
 
         double mGamma;
         double mAlpha;
-        Random generator;
+        Random mGenerator;
+        Position mTopLeft;
+        Position mBottomRight;
+        int mNumEpisodes;
 
-        EpisodeRunner(double alpha, double gamma) {
+        EpisodeRunner(double alpha, double gamma, Position topLeft, Position bottomRight, int numEpisodes) {
             mAlpha = alpha;
             mGamma = gamma;
-            generator = new Random(5);
+            mTopLeft = topLeft;
+            mBottomRight = bottomRight;
+            mGenerator = new Random(5);
+            mNumEpisodes = numEpisodes;
         }
 
         @Override
         public void run() {
             int x;
             int y;
-            int numEpisodes = 100000 / mNumThreads;
-            for(int i = 0; i < numEpisodes; ++i)
+            for(int i = 0; i < mNumEpisodes; ++i)
             {
                 Position randomLocation;
                 do{
-                    x = generator.nextInt(q_table.getNumColumns());
-                    y = generator.nextInt(q_table.getNumRows());
+                    x = getRandomNumber(mGenerator, mTopLeft.getX(), mBottomRight.getX() + 1);
+                    y = getRandomNumber(mGenerator, mTopLeft.getY(), mBottomRight.getY() + 1);
                     randomLocation = new Position(y, x);
 
-                } while(q_table.locationIsWall(randomLocation) || q_table.getReward(randomLocation) > 99.999);
+                } while(mQTable.locationIsWall(randomLocation) || mQTable.getReward(randomLocation) > 99.999);
 
-                episode(q_table.getState(randomLocation), 0, mGamma, mAlpha);
+                episode(mQTable.getState(randomLocation), 0, mGamma, mAlpha);
             }
         }
     }
@@ -43,22 +49,53 @@ public class QLearning {
 
         mNumThreads = numThreads;
 
-        //q_table = new Grid("worldSmall.txt", goal);
-        q_table = new Grid("world.txt", goal, lockType);
+        //mQTable = new Grid("worldSmall.txt", goal);
+        mQTable = new Grid("world.txt", goal, lockType);
         double alpha = 1;
         double gamma = 0.8;
 
-        q_table.printWorld();
-        q_table.printRewards();
+        mQTable.printWorld();
+        mQTable.printRewards();
 
         long startTime = System.nanoTime();
 
         Thread[] threads = new Thread[mNumThreads];
+        int numEpisodes = 100000 / numThreads;
+
+        // If we are subdividing our grid
+        if (1 != 1)
+        {
+            int colSubgridBase = mQTable.getNumColumns() / mNumThreads;
+            int colSubgridRemainder = mQTable.getNumColumns() % mNumThreads;
+            int colSubgridRange = 0;
+            Position topLeft;
+            Position bottomRight;
+
+            for (int i = 0; i < numThreads; ++i) {
+                topLeft = new Position(0, colSubgridRange);
+
+                if (colSubgridRemainder > 0) {
+                    colSubgridRange += colSubgridBase + 1;
+                    colSubgridRemainder--;
+                } else {
+                    colSubgridRange += colSubgridBase;
+                }
+
+                bottomRight = new Position(mQTable.getNumRows() - 1, colSubgridRange - 1);
+
+                Thread t = new Thread(new EpisodeRunner(alpha, gamma, topLeft, bottomRight, numEpisodes));
+                threads[i] = t;
+            }
+        } else {
+            for (int i = 0; i < mNumThreads; ++i) {
+                Thread t = new Thread(new EpisodeRunner(alpha, gamma, new Position(0, 0),
+                        new Position(mQTable.getNumRows() - 1, mQTable.getNumColumns() - 1), numEpisodes));
+                threads[i] = t;
+            }
+        }
 
         for (int i = 0; i < mNumThreads; ++i) {
-            Thread t = new Thread(new EpisodeRunner(alpha, gamma));
-            threads[i] = t;
-            t.start();
+            threads[i].start();
         }
 
         for (int i = 0; i < mNumThreads; ++i) {
@@ -78,7 +115,16 @@ public class QLearning {
 
     // gets neighbors, updates the reward, and then moves to the next state
     // returns if depth exceeded, goal reached, or an invalid state reached
-    private void episode(State state, int depth, double gamma, double alpha){
+    private void episode(State state, int depth, double gamma, double alpha) {
+
+//        Class<?> objClass = State.class.getClass();
+//        Method setTransitionActionReward = null;
+//        try {
+//            setTransitionActionReward = objClass.getDeclaredMethod("setTransitionActionReward", String.class, double.class);
+//        } catch (NoSuchMethodException e) {
+//            e.printStackTrace();
+//        }
+//        setTransitionActionReward.invoke(state, )
 
         StatePair next_state;
         double reward;
@@ -114,7 +160,7 @@ public class QLearning {
         state.setTransitionActionReward(direction,
                 Math.max(reward, state.getTransitionActionReward(direction)));
         episode(next_state.getState(), depth + 1, gamma, alpha);
-  }
+    }
 
     public double maxActionReward(State state){
         double max = 0.0;
@@ -137,7 +183,7 @@ public class QLearning {
     private StatePair nextState(State state) {
 
         // Get a vector of the next possible states from the current state
-        Vector<StatePair> neighbors = q_table.getNeighbors(state);
+        Vector<StatePair> neighbors = mQTable.getNeighbors(state);
 
         // Choose a random direction to go next from the list of available directions
         int index = nextStateGenerator.nextInt(neighbors.size());
@@ -162,8 +208,8 @@ public class QLearning {
                 reachedEnd = true;
             }else{
                 // Else we haven't found the goal yet.
-                State curState = q_table.getState(start);
-                neighbors = q_table.getNeighbors(curState);
+                State curState = mQTable.getState(start);
+                neighbors = mQTable.getNeighbors(curState);
                 StatePair nextNeighbor = null;
                 System.out.println('(' + start.getX() + ',' + start.getY() + ')');
                 double maxReward = 0;
@@ -207,4 +253,16 @@ public class QLearning {
         return thePathTaken;
     }
 
+    /**
+     * Retrieves a random number from a random number generator within the range provided.
+     * @param generator The random number generator to use
+     * @param low The low value (inclusive)
+     * @param high The high value (exclusive)
+     * @return The generated random number
+     */
+    public int getRandomNumber(Random generator, int low, int high) {
+        int val = generator.nextInt(high - low) + low;
+        System.out.println("low = " + low + " high = " + high + " random = " + val);
+        return val;
+    }
 }

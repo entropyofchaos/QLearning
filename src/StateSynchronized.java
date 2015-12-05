@@ -19,7 +19,7 @@ public class StateSynchronized extends State {
      *                    reward, the more enticing the direction should be to the agent
      */
     @Override
-    public synchronized void addTransitionAction(String direction, double rewardValue){
+    public void addTransitionAction(String direction, double rewardValue){
 
         super.addTransitionAction(direction, rewardValue);
     }

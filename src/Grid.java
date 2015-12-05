@@ -16,6 +16,8 @@ public class Grid {
     private GridCell[][] mWorld;
     private int mCols;
     private int mRows;
+    private int mNumThreads;
+    private GridDivisionType mGridDivisionType;
     private Position mGoal;
     private LockType mLockType;
 
@@ -41,12 +43,30 @@ public class Grid {
     }
 
     /**
-     * Default constructor
+     * Construction
+     * @param path File path of grid
+     * @param goal Position of the goal
+     * @param lockType The type of locking mechanism to use
      */
-    public Grid(String path, Position goal, LockType lockType){
+    public Grid(String path, Position goal, LockType lockType) {
 
         mCols = 0;
         mRows = 0;
+        mNumThreads = 1;
+        mGridDivisionType = GridDivisionType.None;
+        mGoal = goal;
+        mLockType = lockType;
+
+        readFile(path);
+    }
+
+
+    public Grid(String path, Position goal, LockType lockType, int numThreads, GridDivisionType gridDivisionType) {
+
+        mCols = 0;
+        mRows = 0;
+        mNumThreads = numThreads;
+        mGridDivisionType = gridDivisionType;
         mGoal = goal;
         mLockType = lockType;
 
@@ -57,7 +77,7 @@ public class Grid {
      * Gets the number of columns in your grid. Max x value.
      * @return Returns the number of columns
      */
-    public int getNumColumns(){
+    public int getNumColumns() {
 
         return mCols;
     }
@@ -66,7 +86,7 @@ public class Grid {
      * Gets the number of rows in your grid. Max y value.
      * @return Returns the number of columns
      */
-    public int getNumRows(){
+    public int getNumRows() {
 
         return mRows;
     }
@@ -75,7 +95,7 @@ public class Grid {
      * Reads the grid mWorld file into the class.
      * @param path The path to the grid mWorld file
      */
-    private void readFile(String path){
+    private void readFile(String path) {
 
         Path filePath = Paths.get(path);
         System.out.println(filePath);
@@ -92,10 +112,23 @@ public class Grid {
             {
                 String oneLine = lines.get(y).trim();
                 int lineSize = oneLine.length();
-                for (int x = 0; x < lineSize; ++x){
+                for (int x = 0; x < lineSize; ++x) {
                     mWorld[y][x] = new GridCell();
                     mWorld[y][x].setIsWall(oneLine.charAt(x) == 'x');
-                    State temp = createState(mLockType, new Position(y, x));
+
+                    State temp;
+
+                    switch (mGridDivisionType) {
+                        case None:
+                            temp = createState(mLockType, new Position(y, x));
+                            break;
+                        case EdgePeak:
+                            int colSubgridLength = lines.get(0).length() / mNumThreads;
+                            boolean isEdge = (x + 1) % colSubgridLength == 0;
+
+                    }
+
+                    temp = createState(mLockType, new Position(y, x));
                     temp.addTransitionAction("right", 0);
                     temp.addTransitionAction("left", 0);
                     temp.addTransitionAction("down", 0);
@@ -111,7 +144,7 @@ public class Grid {
             mRows = mWorld.length;
             mCols = mWorld[0].length;
 
-        } catch (IOException e){
+        } catch (IOException e) {
             System.out.println(e.toString());
         }
     }
@@ -125,7 +158,7 @@ public class Grid {
      * @return A vector of valid adjacent cells where the first parameter is the
      * direction name and the second is the actual State
      */
-    Vector<StatePair> getNeighbors(State state){
+    Vector<StatePair> getNeighbors(State state) {
 
         Vector<StatePair>  neighbors = new Vector<>();
         Position loc = state.getPosition();
@@ -163,31 +196,29 @@ public class Grid {
      * @param pos The location to check
      * @return True if the location is a wall and false if it is not
      */
-    boolean locationIsWall(Position pos)
-    {
+    boolean locationIsWall(Position pos) {
         return mWorld[pos.getY()][pos.getX()].isWall();
     }
 
-    public double getReward(Position position){
+    public double getReward(Position position) {
 
         return getState(position).getReward();
     }
 
-    public State getState(Position position)
-    {
+    public State getState(Position position) {
         return mWorld[position.getY()][position.getX()].getSate();
     }
 
     /**
      * Prints the grid world to the console.
      */
-    public void printWorld(){
+    public void printWorld() {
         System.out.println("size is " + getNumRows() + "x" + getNumColumns());
-        for (int y = 0; y < mWorld.length; ++y){
-            for (int x = 0; x < mWorld[y].length; ++x){
+        for (int y = 0; y < mWorld.length; ++y) {
+            for (int x = 0; x < mWorld[y].length; ++x) {
                 if (mWorld[y][x].isWall()) {
                     System.out.print('x');
-                }else{
+                } else {
                     System.out.print('-');
                 }
             }
@@ -200,8 +231,8 @@ public class Grid {
      */
     public void printRewards() {
 
-        for (int y = 0; y < mWorld.length; ++y){
-            for (int x = 0; x < mWorld[y].length; ++x){
+        for (int y = 0; y < mWorld.length; ++y) {
+            for (int x = 0; x < mWorld[y].length; ++x) {
                 System.out.print(mWorld[y][x].getSate().getReward() + " ");
             }
             System.out.println();
@@ -223,6 +254,10 @@ public class Grid {
                 System.out.println(str);
             }
         }
+    }
+
+    public enum GridDivisionType {
+        None, EdgePeak, RecursiveGrid
     }
 
     public enum LockType {
@@ -252,6 +287,4 @@ public class Grid {
 
         return returnState;
     }
-
-
 }

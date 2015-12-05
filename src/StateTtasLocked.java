@@ -25,9 +25,7 @@ public class StateTtasLocked extends State {
     @Override
     public void addTransitionAction(String direction, double rewardValue){
 
-        mMutex.lock();
         super.addTransitionAction(direction, rewardValue);
-        mMutex.unlock();
     }
 
     /**
