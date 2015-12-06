@@ -9,7 +9,7 @@ public interface Lock {
    void lock();
 
    /**
-    * Acquires the lock if avilable when invoked. If the
+    * Acquires the lock if available when invoked. If the
     * lock is not available, this method will not block.
     */
    boolean tryLock();

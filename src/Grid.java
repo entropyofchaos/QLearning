@@ -1,12 +1,13 @@
+import org.apache.commons.lang3.tuple.MutablePair;
+
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Vector;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
+import java.util.Vector;
 
 /**
  * Class to represent our grid mWorld for the QLearning algorithm.
@@ -60,7 +61,6 @@ public class Grid {
         readFile(path);
     }
 
-
     public Grid(String path, Position goal, LockType lockType, int numThreads, GridDivisionType gridDivisionType) {
 
         mCols = 0;
@@ -108,27 +108,41 @@ public class Grid {
             List<String> lines = Files.readAllLines(filePath, charset);
             mWorld = new GridCell[lines.size()][lines.get(0).length()];
 
-            for (int y = 0; y < mWorld.length; ++y)
-            {
+            mRows = lines.size();
+            mCols = lines.get(0).length();
+
+            for (int y = 0; y < mWorld.length; ++y) {
+                State temp = null;
                 String oneLine = lines.get(y).trim();
                 int lineSize = oneLine.length();
                 for (int x = 0; x < lineSize; ++x) {
                     mWorld[y][x] = new GridCell();
                     mWorld[y][x].setIsWall(oneLine.charAt(x) == 'x');
 
-                    State temp;
+                    Position newPosition = new Position(y, x);
 
                     switch (mGridDivisionType) {
                         case None:
-                            temp = createState(mLockType, new Position(y, x));
+                            temp = createState(mLockType, newPosition);
                             break;
                         case EdgePeak:
-                            int colSubgridLength = lines.get(0).length() / mNumThreads;
-                            boolean isEdge = (x + 1) % colSubgridLength == 0;
-
+                            Vector<MutablePair<Position, Position>> subgridCorners = getSubgridCorners(mNumThreads);
+                            for (MutablePair<Position, Position> singleSubgridCorners : subgridCorners) {
+                                if (isEdgePosition(singleSubgridCorners.getLeft(), singleSubgridCorners.getRight(),
+                                        newPosition)) {
+                                    temp = createState(mLockType, newPosition);
+                                } else {
+                                    temp = createState(LockType.None, newPosition);
+                                }
+                            }
+                            break;
+                        case RecursiveGrid:
+                            temp = createState(mLockType, newPosition);
+                            break;
+                        default:
+                            temp = createState(mLockType, newPosition);
                     }
 
-                    temp = createState(mLockType, new Position(y, x));
                     temp.addTransitionAction("right", 0);
                     temp.addTransitionAction("left", 0);
                     temp.addTransitionAction("down", 0);
@@ -141,9 +155,6 @@ public class Grid {
             tempState.setReward(100);
             mWorld[mGoal.getY()][mGoal.getX()].setState(tempState);
 
-            mRows = mWorld.length;
-            mCols = mWorld[0].length;
-
         } catch (IOException e) {
             System.out.println(e.toString());
         }
@@ -155,8 +166,7 @@ public class Grid {
      * not added to the vector. Also, if the position provided is a wall, no neighbors
      * will be returned.
      * @param state The state to neighbors from
-     * @return A vector of valid adjacent cells where the first parameter is the
-     * direction name and the second is the actual State
+     * @return A vector of valid adjacent cells
      */
     Vector<StatePair> getNeighbors(State state) {
 
@@ -187,6 +197,23 @@ public class Grid {
             if (y - 1 >= 0 && !locationIsWall(new Position(y - 1, x))) {
                 neighbors.add(new StatePair("up", mWorld[y - 1][x].getSate()));
             }
+        }
+        return neighbors;
+    }
+
+    /**
+     * Overload of Vector<StatePair> getNeighbors(State state). This method is identical except states outside of
+     * subgrid defined by a top left and bottom right position are also not returned.
+     * @param state The state to neighbors from
+     * @param topLeft Top left position of the subgrid
+     * @param bottomRight Bottom right position of the subgrid
+     * @return A vector of valid adjacent cells
+     */
+    Vector<StatePair> getNeighbors(State state, Position topLeft, Position bottomRight) {
+
+        Vector<StatePair> neighbors = getNeighbors(state);
+        for (StatePair neighbor : neighbors){
+            isOutsideSubgrid(neighbor.getState().getPosition(), topLeft, bottomRight);
         }
         return neighbors;
     }
@@ -286,5 +313,62 @@ public class Grid {
         }
 
         return returnState;
+    }
+
+    public Vector<MutablePair<Position, Position>> getSubgridCorners(int numSubdivisions) {
+
+        Vector<MutablePair<Position, Position>> subgridCorners = new Vector<>();
+        int colSubgridBase = mCols / numSubdivisions;
+        int colSubgridRemainder = mCols % numSubdivisions;
+        int colSubgridRange = 0;
+        Position topLeft;
+        Position bottomRight;
+
+        for (int i = 0; i < numSubdivisions; ++i) {
+            topLeft = new Position(0, colSubgridRange);
+
+            if (colSubgridRemainder > 0) {
+                colSubgridRange += colSubgridBase + 1;
+                colSubgridRemainder--;
+            } else {
+                colSubgridRange += colSubgridBase;
+            }
+
+            bottomRight = new Position(mRows - 1, colSubgridRange - 1);
+
+            subgridCorners.add(new MutablePair<>(topLeft, bottomRight));
+        }
+
+        return subgridCorners;
+    }
+
+    public boolean isEdgePosition(Position topLeft, Position bottomRight, Position positionToCheck) {
+
+        boolean isEdgePosition;
+
+        if (positionToCheck.getX() == topLeft.getX() || positionToCheck.getX() == bottomRight.getX() ||
+                positionToCheck.getY() == topLeft.getY() || positionToCheck.getY() == bottomRight.getY())
+        {
+            isEdgePosition = true;
+        } else {
+            isEdgePosition = false;
+        }
+
+        return isEdgePosition;
+    }
+
+    public boolean isOutsideSubgrid(Position topLeft, Position bottomRight, Position positionToCheck) {
+
+        boolean isOutsideSubgrid;
+
+        if (positionToCheck.getX() < topLeft.getX() || positionToCheck.getX() > bottomRight.getX() ||
+                positionToCheck.getY() < topLeft.getY() || positionToCheck.getY() > bottomRight.getY())
+        {
+            isOutsideSubgrid = true;
+        } else {
+            isOutsideSubgrid = false;
+        }
+
+        return isOutsideSubgrid;
     }
 }

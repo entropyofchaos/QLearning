@@ -1,12 +1,14 @@
-import java.lang.reflect.Method;
+import org.apache.commons.lang3.tuple.MutablePair;
+
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class QLearning {
 
     private Grid mQTable;
-    private int mNumThreads;
+    private Random mNextStateGenerator = new Random();
 
     private class EpisodeRunner implements Runnable {
 
@@ -16,115 +18,173 @@ public class QLearning {
         Position mTopLeft;
         Position mBottomRight;
         int mNumEpisodes;
+        Grid.GridDivisionType mGridDivisionType;
+        boolean mComplete;
+        AtomicBoolean mShutdown;
 
-        EpisodeRunner(double alpha, double gamma, Position topLeft, Position bottomRight, int numEpisodes) {
+        EpisodeRunner(double alpha, double gamma, Position topLeft, Position bottomRight, int numEpisodes,
+                      Grid.GridDivisionType gridDivisionType) {
             mAlpha = alpha;
             mGamma = gamma;
             mTopLeft = topLeft;
             mBottomRight = bottomRight;
-            mGenerator = new Random(5);
+            mGenerator = new Random();
             mNumEpisodes = numEpisodes;
+            mGridDivisionType = gridDivisionType;
+            mComplete = false;
+            mShutdown = new AtomicBoolean(false);
+        }
+
+        public void setBottomRight(Position bottomRight) {
+            mBottomRight = bottomRight;
+        }
+
+        public void setTopLeft(Position topLeft) {
+            mTopLeft = topLeft;
+        }
+
+        public synchronized void waitUntilComplete() {
+            if (!mComplete) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        public void shutdown() {
+            mShutdown.set(true);
+            waitUntilComplete();
+
+            synchronized (this) {
+                notifyAll();
+            }
         }
 
         @Override
         public void run() {
             int x;
             int y;
-            for(int i = 0; i < mNumEpisodes; ++i)
-            {
-                Position randomLocation;
-                do{
-                    x = getRandomNumber(mGenerator, mTopLeft.getX(), mBottomRight.getX() + 1);
-                    y = getRandomNumber(mGenerator, mTopLeft.getY(), mBottomRight.getY() + 1);
-                    randomLocation = new Position(y, x);
 
-                } while(mQTable.locationIsWall(randomLocation) || mQTable.getReward(randomLocation) > 99.999);
+            while (!mShutdown.get()) {
+                mComplete = false;
 
-                episode(mQTable.getState(randomLocation), 0, mGamma, mAlpha);
+                for (int i = 0; i < mNumEpisodes; ++i) {
+                    Position randomLocation;
+                    do {
+                        x = getRandomNumber(mGenerator, mTopLeft.getX(), mBottomRight.getX() + 1);
+                        y = getRandomNumber(mGenerator, mTopLeft.getY(), mBottomRight.getY() + 1);
+                        randomLocation = new Position(y, x);
+
+                    } while (mQTable.locationIsWall(randomLocation) || mQTable.getReward(randomLocation) > 99.999);
+
+                    if (mGridDivisionType != Grid.GridDivisionType.RecursiveGrid) {
+                        episode(mQTable.getState(randomLocation), 0, mGamma, mAlpha);
+                    } else {
+                        episode(mQTable.getState(randomLocation), 0, mGamma, mAlpha, mTopLeft, mBottomRight);
+                    }
+                }
+
+                mComplete = true;
+                synchronized (this) {
+                    notifyAll();
+                }
+
+                // Code finished. If we aren't set to shutdown, put thread to sleep. The thread's parameters can then be
+                // changed and allowed to rerun again saving on thread creation time.
+                if (!mShutdown.get()) {
+                    synchronized (this) {
+                        try {
+                            wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
             }
         }
     }
 
-    public QLearning(Position start, Position goal, Grid.LockType lockType, int numThreads) {
-
-        mNumThreads = numThreads;
+    public double doQLearning(Position start, Position goal, int numEpisodes, Grid.LockType lockType, int numThreads,
+                     Grid.GridDivisionType gridDivisionType) {
 
         //mQTable = new Grid("worldSmall.txt", goal);
-        mQTable = new Grid("world.txt", goal, lockType);
-        double alpha = 1;
-        double gamma = 0.8;
+        mQTable = new Grid("complexWorld.txt", goal, lockType, numThreads, gridDivisionType);
 
         mQTable.printWorld();
         mQTable.printRewards();
 
         long startTime = System.nanoTime();
 
-        Thread[] threads = new Thread[mNumThreads];
-        int numEpisodes = 100000 / numThreads;
-
-        // If we are subdividing our grid
-        if (1 != 1)
-        {
-            int colSubgridBase = mQTable.getNumColumns() / mNumThreads;
-            int colSubgridRemainder = mQTable.getNumColumns() % mNumThreads;
-            int colSubgridRange = 0;
-            Position topLeft;
-            Position bottomRight;
-
-            for (int i = 0; i < numThreads; ++i) {
-                topLeft = new Position(0, colSubgridRange);
-
-                if (colSubgridRemainder > 0) {
-                    colSubgridRange += colSubgridBase + 1;
-                    colSubgridRemainder--;
-                } else {
-                    colSubgridRange += colSubgridBase;
-                }
-
-                bottomRight = new Position(mQTable.getNumRows() - 1, colSubgridRange - 1);
-
-                Thread t = new Thread(new EpisodeRunner(alpha, gamma, topLeft, bottomRight, numEpisodes));
-                threads[i] = t;
-            }
-        } else {
-            for (int i = 0; i < mNumThreads; ++i) {
-                Thread t = new Thread(new EpisodeRunner(alpha, gamma, new Position(0, 0),
-                        new Position(mQTable.getNumRows() - 1, mQTable.getNumColumns() - 1), numEpisodes));
-                threads[i] = t;
-            }
-        }
-
-        for (int i = 0; i < mNumThreads; ++i) {
-            threads[i].start();
-        }
-
-        for (int i = 0; i < mNumThreads; ++i) {
-            try {
-                threads[i].join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        Vector<Thread> threads = new Vector<>(numThreads);
+        Vector<EpisodeRunner> episodeRunners = new Vector<>(numThreads);
+        numEpisodes = numEpisodes / numThreads;
+        learnFn(threads, episodeRunners, numEpisodes, numThreads, gridDivisionType, true);
 
         long endTime = System.nanoTime();
 
         traverseGrid(start, goal);
 
-        System.out.println("Time to complete: " + ((endTime-startTime) * 1000.0));
+        double timeToLearn = (endTime-startTime) / 1000000000.0;
+        System.out.println("Time to complete: " + timeToLearn);
+        return timeToLearn;
+    }
+
+    private void learnFn(Vector<Thread> threads, Vector<EpisodeRunner> episodeRunners, int numEpisodes, int numDivisions,
+                       Grid.GridDivisionType gridDivisionType, boolean firstTimeRun) {
+
+        double alpha = 1;
+        double gamma = 0.8;
+
+        Vector<MutablePair<Position, Position>> subgridCorners = mQTable.getSubgridCorners(numDivisions);
+
+        if (firstTimeRun) {
+            // Create new threads and episode runners
+            for (int i = 0; i < subgridCorners.size(); ++i) {
+
+                EpisodeRunner episodeRunner = new EpisodeRunner(alpha, gamma, subgridCorners.elementAt(i).getLeft(),
+                        subgridCorners.elementAt(i).getRight(), numEpisodes, gridDivisionType);
+
+                episodeRunners.add(episodeRunner);
+                Thread t = new Thread(episodeRunner);
+                threads.add(t);
+                t.start();
+            }
+        } else {
+            // Reuse threads and episode runners, and rerun on new subdivisions
+            for (int i = 0; i < subgridCorners.size(); ++i) {
+
+                EpisodeRunner curRunner = episodeRunners.elementAt(i);
+                curRunner.setTopLeft(subgridCorners.elementAt(i).getLeft());
+                curRunner.setBottomRight(subgridCorners.elementAt(i).getRight());
+                synchronized (curRunner) {
+                    curRunner.notifyAll();
+                }
+            }
+        }
+
+        episodeRunners.forEach(EpisodeRunner::waitUntilComplete);
+
+        if (gridDivisionType == Grid.GridDivisionType.RecursiveGrid && numDivisions != 1) {
+            learnFn(threads, episodeRunners, numEpisodes, numDivisions / 2, gridDivisionType, false);
+        } else {
+            episodeRunners.forEach(EpisodeRunner::shutdown);
+            episodeRunners.forEach(EpisodeRunner::waitUntilComplete);
+        }
+
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     // gets neighbors, updates the reward, and then moves to the next state
     // returns if depth exceeded, goal reached, or an invalid state reached
     private void episode(State state, int depth, double gamma, double alpha) {
-
-//        Class<?> objClass = State.class.getClass();
-//        Method setTransitionActionReward = null;
-//        try {
-//            setTransitionActionReward = objClass.getDeclaredMethod("setTransitionActionReward", String.class, double.class);
-//        } catch (NoSuchMethodException e) {
-//            e.printStackTrace();
-//        }
-//        setTransitionActionReward.invoke(state, )
 
         StatePair next_state;
         double reward;
@@ -162,6 +222,44 @@ public class QLearning {
         episode(next_state.getState(), depth + 1, gamma, alpha);
     }
 
+    private void episode(State state, int depth, double gamma, double alpha, Position topLeft, Position bottomRight) {
+
+        StatePair next_state;
+        double reward;
+        String direction;
+
+        if(depth > 150)
+            return;
+        if(state.getReward() > 99.999){
+            //System.out.println("reached the goal");
+            return;
+        }
+
+        // Figure out the next state to take based on the current state. This is chosen at random from the currents
+        // states neighbors that aren't walls.
+        next_state = nextState(state, topLeft, bottomRight);
+
+        // Take the action so we can keep track of how many times a direction was taken from this state
+        state.takeTransitionAction(next_state.getDirection());
+
+        // Go through the possible actions for the next state and get their action reward values. We will use this to
+        // calculate the max action value for all possible actions from the next state
+        direction = next_state.getDirection();
+        reward = state.getTransitionActionReward(direction) + alpha *
+                (
+                        next_state.getState().getReward() +
+                                gamma * maxActionReward(next_state.getState()) -
+                                state.getTransitionActionReward(direction)
+                );
+
+        // Set the new transaction reward. We set it based on the max of the current reward for the transition and the
+        // calculated reward. This is done to guarantee that the transition action reward value will only ever increase
+        // and no decrease.
+        state.setTransitionActionReward(direction,
+                Math.max(reward, state.getTransitionActionReward(direction)));
+        episode(next_state.getState(), depth + 1, gamma, alpha, topLeft, bottomRight);
+    }
+
     public double maxActionReward(State state){
         double max = 0.0;
         Set<String> actions = state.getActions();
@@ -172,8 +270,6 @@ public class QLearning {
         }
         return max;
     }
-
-    static Random nextStateGenerator = new Random(5);
 
     /**
      * Provides the next state to explore given the current state. The current state must not be surrounded by walls
@@ -186,7 +282,27 @@ public class QLearning {
         Vector<StatePair> neighbors = mQTable.getNeighbors(state);
 
         // Choose a random direction to go next from the list of available directions
-        int index = nextStateGenerator.nextInt(neighbors.size());
+        int index = mNextStateGenerator.nextInt(neighbors.size());
+
+        // Return the random state chosen
+        return neighbors.elementAt(index);
+    }
+
+    /**
+     * Overload of StatePair nextState(State state). This method is identical except that it restricts the next state
+     * to states that are within the subgrid constrained by the provided top left and bottom right positions.
+     * @param state The current state
+     * @param topLeft Top left position of the subgrid
+     * @param bottomRight Bottom right position of the subgrid
+     * @return A pair with the next direction and its corresponding state
+     */
+    private StatePair nextState(State state, Position topLeft, Position bottomRight) {
+
+        // Get a vector of the next possible states from the current state
+        Vector<StatePair> neighbors = mQTable.getNeighbors(state, topLeft, bottomRight);
+
+        // Choose a random direction to go next from the list of available directions
+        int index = mNextStateGenerator.nextInt(neighbors.size());
 
         // Return the random state chosen
         return neighbors.elementAt(index);
@@ -261,8 +377,7 @@ public class QLearning {
      * @return The generated random number
      */
     public int getRandomNumber(Random generator, int low, int high) {
-        int val = generator.nextInt(high - low) + low;
-        System.out.println("low = " + low + " high = " + high + " random = " + val);
-        return val;
+
+        return generator.nextInt(high - low) + low;
     }
 }

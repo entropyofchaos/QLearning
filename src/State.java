@@ -1,7 +1,7 @@
+import org.apache.commons.lang3.tuple.MutablePair;
+
 import java.util.HashMap;
 import java.util.Set;
-import java.util.concurrent.Semaphore;
-import org.apache.commons.lang3.tuple.MutablePair;
 
 public class State {
 
@@ -64,8 +64,7 @@ public class State {
      */
     public double getTransitionActionReward(String direction){
 
-        double reward = mActions.get(direction).getRight();
-        return reward;
+        return mActions.get(direction).getRight();
     }
 
     /**
@@ -87,8 +86,7 @@ public class State {
      */
     public int numTransitionActionsTaken(String direction){
 
-        int numTransitionActions = mActions.get(direction).getLeft();
-        return numTransitionActions;
+        return mActions.get(direction).getLeft();
     }
 
     /**
@@ -97,8 +95,7 @@ public class State {
      */
     public Position getPosition(){
 
-        Position pos = mPosition;
-        return pos;
+        return mPosition;
     }
 
     /**
@@ -107,8 +104,7 @@ public class State {
      */
     public Set<String> getActions(){
 
-        Set<String> keys = mActions.keySet();
-        return keys;
+        return mActions.keySet();
     }
 
     /**
@@ -126,8 +122,7 @@ public class State {
      */
     public double getReward(){
 
-        double reward = mReward;
-        return reward;
+        return mReward;
     }
 
 }
