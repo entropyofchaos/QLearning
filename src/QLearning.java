@@ -106,14 +106,14 @@ public class QLearning {
         }
     }
 
-    public double doQLearning(Position start, Position goal, int numEpisodes, Grid.LockType lockType, int numThreads,
-                     Grid.GridDivisionType gridDivisionType) {
-
-        //mQTable = new Grid("worldSmall.txt", goal);
+    public QLearning(Position goal, Grid.LockType lockType, int numThreads,
+                          Grid.GridDivisionType gridDivisionType){
         mQTable = new Grid("complexWorld.txt", goal, lockType, numThreads, gridDivisionType);
+//        mQTable.printWorld();
+//        mQTable.printRewards();
+    }
 
-        mQTable.printWorld();
-        mQTable.printRewards();
+    public double doQLearning(int numEpisodes, int numThreads, Grid.GridDivisionType gridDivisionType) {
 
         long startTime = System.nanoTime();
 
@@ -123,8 +123,6 @@ public class QLearning {
         learnFn(threads, episodeRunners, numEpisodes, numThreads, gridDivisionType, true);
 
         long endTime = System.nanoTime();
-
-        traverseGrid(start, goal);
 
         double timeToLearn = (endTime-startTime) / 1000000000.0;
         System.out.println("Time to complete: " + timeToLearn);

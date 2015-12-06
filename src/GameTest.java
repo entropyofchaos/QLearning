@@ -1,6 +1,5 @@
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Random;
 import java.util.Scanner;
 
 /**
@@ -52,63 +51,84 @@ public class GameTest {
                 lockType = Grid.LockType.None;
             }
 
-            QLearning qLearningObj = new QLearning();
-            qLearningObj.doQLearning(new Position(userStartY, userStartX), new Position(userGoalY, userGoalX), numEpisodes, lockType,
-                    numThreads, gridDivisionType);
+            QLearning qLearningObj = new QLearning(new Position(userGoalY, userGoalX), lockType, numThreads,
+                    gridDivisionType);
+            qLearningObj.doQLearning(numEpisodes, numThreads, gridDivisionType);
+            qLearningObj.traverseGrid(new Position(userStartY, userStartX), new Position(userGoalY, userGoalX));
         } else {
             FileWriter fileWriter = null;
 
             try {
                 fileWriter = new FileWriter("output" + System.currentTimeMillis() + ".csv");
-                fileWriter.append(",1 Thread,2 Threads,4 Threads,8 Threads\n");
+                String toPrint = ",1 Thread,2 Threads,4 Threads,8 Threads\n";
+                fileWriter.append(toPrint);
+                fileWriter.flush();
+                System.out.print(toPrint);
 
+                int numEpisodes = 1000000;
                 int numRuns = 100;
                 int numThreadsArray[] = {2, 4, 8};
                 Grid.LockType[] lockTypes = Grid.LockType.values();
                 Grid.GridDivisionType gridDivisionTypes[] = Grid.GridDivisionType.values();
 
-                Random generator = new Random();
-                QLearning qLearningObj = new QLearning();
+//                Position goal, Grid.LockType lockType, int numThreads,
+//                Grid.GridDivisionType gridDivisionType
+                QLearning qLearningObj;
                 double advRunTime;
 
 
+                qLearningObj = new QLearning(new Position(8, 8), Grid.LockType.None, 1, Grid.GridDivisionType.None);
                 advRunTime = 0;
                 for (int i = 0; i < numRuns; ++i) {
-                    advRunTime += qLearningObj.doQLearning(new Position(generator.nextInt(),
-                            generator.nextInt()), new Position(generator.nextInt(), generator.nextInt()),
-                            1000000, Grid.LockType.None, 1, Grid.GridDivisionType.None);
+                    advRunTime += qLearningObj.doQLearning(numEpisodes, 1, Grid.GridDivisionType.None);
+                    System.out.println("SingleThreaded num runs = " + i);
                 }
                 advRunTime /= numRuns;
-                fileWriter.append("SingleThreaded," + advRunTime + ",,,\n");
+                toPrint = "SingleThreaded," + advRunTime + ",,,\n";
+                fileWriter.append(toPrint);
+                fileWriter.flush();
+                System.out.println(toPrint);
 
                 for (Grid.LockType lockType : lockTypes) {
                     for (Grid.GridDivisionType gridDivisionType : gridDivisionTypes) {
-                        fileWriter.append(gridDivisionType.toString());
+                        toPrint = gridDivisionType.toString() + ",";
+                        fileWriter.append(toPrint);
+                        fileWriter.flush();
+                        System.out.print(toPrint);
                         for (int numThreads : numThreadsArray) {
                             if (gridDivisionType == Grid.GridDivisionType.RecursiveGrid) {
                                 if (lockType == Grid.LockType.None) {
+                                    qLearningObj = new QLearning(new Position(8, 8), lockType, numThreads,
+                                            gridDivisionType);
                                     advRunTime = 0;
                                     for (int i = 0; i < numRuns; ++i) {
-                                        advRunTime += qLearningObj.doQLearning(new Position(generator.nextInt(),
-                                                generator.nextInt()), new Position(generator.nextInt(),
-                                                generator.nextInt()), 1000000, lockType, numThreads,
+                                        advRunTime += qLearningObj.doQLearning(numEpisodes, numThreads,
                                                 gridDivisionType);
+                                        System.out.println(gridDivisionType.toString() + " " + lockType.toString() +
+                                                " " + numThreads + " num runs = " + i);
                                     }
                                     advRunTime /= numRuns;
                                 }
                                 // Do nothing if GridDivisionType == RecursiveGrid and LockType != None
                             } else {
+                                qLearningObj = new QLearning(new Position(8, 8), lockType, numThreads,
+                                        gridDivisionType);
                                 advRunTime = 0;
                                 for (int i = 0; i < numRuns; ++i) {
-                                    advRunTime += qLearningObj.doQLearning(new Position(generator.nextInt(),
-                                            generator.nextInt()), new Position(generator.nextInt(),
-                                            generator.nextInt()), 1000000, lockType, numThreads, gridDivisionType);
+                                    advRunTime += qLearningObj.doQLearning(numEpisodes, numThreads, gridDivisionType);
+                                    System.out.println(gridDivisionType.toString() + " " + lockType.toString() +
+                                            " " + numThreads + " num runs = " + i);
                                 }
                                 advRunTime /= numRuns;
                             }
-                            fileWriter.append("," + advRunTime);
+                            toPrint = "," + advRunTime;
+                            fileWriter.append(toPrint);
+                            fileWriter.flush();
+                            System.out.print(toPrint);
                         }
                         fileWriter.append("\n");
+                        fileWriter.flush();
+                        System.out.println();
                     }
                 }
             } catch (Exception e) {
