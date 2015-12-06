@@ -288,7 +288,7 @@ public class Grid {
     }
 
     public enum LockType {
-        None, SemaphoreLocked, Synchronized, TTAS
+        None, SemaphoreLocked, Synchronized, TTAS, Coarse
     }
 
     private State createState(LockType lockType, Position position) {
@@ -306,6 +306,9 @@ public class Grid {
                 break;
             case TTAS:
                 returnState = new StateTtasLocked(position);
+                break;
+            case Coarse:
+                returnState = new CoarseLocked(position);
                 break;
             default:
                 returnState = new State(position);
